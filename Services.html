@@ -63,6 +63,41 @@
     td{ font-size:14px; padding:10px; }
     .table-card{ padding:15px; }
   }
+
+  /* MENU RESPONSIVE */
+.main-menu{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin: 10px auto 20px;
+  padding: 0 10px;
+}
+
+.main-menu a{
+  background:#121212;
+  border:1px solid #D4BA67;
+  color:white;
+  text-decoration:none;     /* quita subrayado solo aquí */
+  padding:10px 12px;
+  border-radius:10px;
+  font-family:'Montserrat', sans-serif;
+  font-size:14px;
+}
+
+.main-menu a:hover{
+  background:#D4BA67;
+  color:#111;
+}
+
+/* CELULAR: en 2 columnas o 1 columna */
+@media (max-width: 600px){
+  .main-menu a{
+    width: 46%;
+    text-align:center;
+    font-size:15px;
+  }
+}
 </style>
 
 
@@ -87,15 +122,13 @@
 
   </header>
 
-<section class="hero" style="font-family: 'Cinzel', serif; color:white; text-align: center;">
-          <div>
-            <a href="index.html">Volver a inicio |</a> 
-            <a href="Services.html">Conoce nuestros servicios y precios|</a> 
-              <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita |</a>
-
-            <a href="Contact.html">Cómo llegar</a>  
-            </div>
-
+<section class="hero" style="font-family:'Cinzel', serif; text-align:center;">
+  <nav class="main-menu">
+    <a href="index.html">Inicio</a>
+    <a href="Services.html">Servicios</a>
+    <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita</a>
+    <a href="Contact.html">Ubicación y horarios</a>
+  </nav>
 </section>
    
  <div class="table-card">

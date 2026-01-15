@@ -23,28 +23,34 @@
 .main-menu{
   display:flex;
   justify-content:center;
-  gap:20px;
+  gap:10px;
   flex-wrap:wrap;
-  margin-top:15px;
+  margin: 10px auto 20px;
+  padding: 0 10px;
 }
 
 .main-menu a{
-  font-family:'Cinzel', serif;
-  font-size:16px;
-  padding:8px 12px;
+  background:#121212;
+  border:1px solid #D4BA67;
+  color:white;
+  text-decoration:none;     /* quita subrayado solo aquí */
+  padding:10px 12px;
+  border-radius:10px;
+  font-family:'Montserrat', sans-serif;
+  font-size:14px;
 }
 
-/* CELULAR */
-@media (max-width: 600px){
-  .main-menu{
-    flex-direction:column;
-    align-items:center;
-    gap:12px;
-  }
+.main-menu a:hover{
+  background:#D4BA67;
+  color:#111;
+}
 
+/* CELULAR: en 2 columnas o 1 columna */
+@media (max-width: 600px){
   .main-menu a{
-    font-size:18px;
-    padding:10px 0;
+    width: 46%;
+    text-align:center;
+    font-size:15px;
   }
 }
     </style>
@@ -69,12 +75,12 @@
    <div style="width:200px; height:200px;"></div>
 
   </header>
-<section class="hero" style="font-family:'Cinzel', serif; color:white; text-align:center;">
+<section class="hero" style="font-family:'Cinzel', serif; text-align:center;">
   <nav class="main-menu">
     <a href="index.html">Inicio</a>
-    <a href="Services.html">Servicios y precios</a>
+    <a href="Services.html">Servicios</a>
     <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita</a>
-    <a href="Contact.html">Cómo llegar</a>
+    <a href="Contact.html">Ubicación y horarios</a>
   </nav>
 </section>
 

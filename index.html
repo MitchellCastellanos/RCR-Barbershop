@@ -16,12 +16,69 @@
   <!-- J'ai apris que si on met un <style> au debut de la page ou dans le head, tous les balises de ce type prendran ce style. Ici j'ai change le style pour que 
     les liens changent pas de coulour a blue lorsqu'ils sont clickes -->
 
-    <style>
-      a { color:white; text-decoration:underline; }  /* Le lien est d'abord blanc */
-      a:visited { color:white; }  /* Il reste blanc meme apres clicker */
-      a:hover { color:#D4BA67; text-decoration:underline; }    /* Lorsque on hover, il change de coulor, j'ai choisi dore */
-      a:active { color:#D4BA67; text-decoration:underline; } 
-    </style>
+   <style>
+  /* Reset básico */
+  body { margin:0; padding:0; }
+
+  /* LINKS (global) */
+  a { color:white; text-decoration:underline; }
+  a:visited { color:white; }
+  a:hover { color:#D4BA67; text-decoration:underline; }
+  a:active { color:#D4BA67; text-decoration:underline; }
+
+  /* MENU RESPONSIVE */
+  .main-menu{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin: 10px auto 20px;
+    padding: 0 10px;
+  }
+
+  .main-menu a{
+    background:#121212;
+    border:1px solid #D4BA67;
+    color:white;
+    text-decoration:none; /* quita subrayado solo aquí */
+    padding:10px 12px;
+    border-radius:10px;
+    font-family:'Montserrat', sans-serif;
+    font-size:14px;
+  }
+
+  .main-menu a:hover{
+    background:#D4BA67;
+    color:#111;
+  }
+
+  /* HEADER */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px;
+    gap:10px;
+  }
+
+  .header-spacer{ width:200px; height:200px; }
+
+  /* CELULAR */
+  @media (max-width: 600px){
+    .main-menu a{
+      width:46%;
+      text-align:center;
+      font-size:15px;
+    }
+
+    header{
+      flex-direction:column;
+      text-align:center;
+    }
+
+    .header-spacer{ display:none; }
+  }
+</style>
 
 
   <header style="display:flex; align-items:center; justify-content:space-between; padding:10px;">
@@ -41,19 +98,17 @@
   </div>
 
   <!-- Ici j'ai mis un espace pour que la flebox laisse le logo a gauche puis le texte au centre -->
-   <div style="width:200px; height:200px;"></div>
+   <div class="header-spacer"></div>
 
   </header>
 
-<section class="hero" style="font-family: 'Cinzel', serif; color:white; text-align: center;">
-          <div>
-            <a href="index.html">Volver a inicio |</a> 
-            <a href="Services.html">Conoce nuestros servicios y precios|</a> 
-              <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita |</a>
-
-            <a href="Contact.html">Cómo llegar</a>  
-            </div>
-
+<section class="hero" style="font-family:'Cinzel', serif; text-align:center;">
+  <nav class="main-menu">
+    <a href="index.html">Inicio</a>
+    <a href="Services.html">Servicios</a>
+    <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita</a>
+    <a href="Contact.html">Ubicación y horarios</a>
+  </nav>
 </section>
 
 <section style="background-color:#121212; padding:30px;">
