@@ -13,19 +13,58 @@
 <body bgcolor="#1b1b1b">
 
       <!-- J'ai change le style pour que les liens changent pas de coulour lorsqu'ils sont clickes -->
-    <style>
-      a { color:white; text-decoration:underline; }  /* Le lien est d'abord blanc */
-      a:visited { color:white; }  /* Il reste blanc meme apres clicker */
-      a:hover { color:#D4BA67; text-decoration:underline; }    /* Lorsque on hover, il change de coulor, j'ai choisi dore */
-      a:active { color:#D4BA67; text-decoration:underline; } 
-    table { border-collapse: collapse; width: 900px; max-width: 95%; }
-  th { background:#121212; color:#D4BA67; padding:14px; font-family:'Cinzel', serif; font-size:18px; }
-  td { padding:12px; border-bottom:1px solid #d8c27a; }
+<style>
+  /* LINKS */
+  a { color:white; text-decoration:underline; }
+  a:visited { color:white; }
+  a:hover { color:#D4BA67; text-decoration:underline; }
+  a:active { color:#D4BA67; text-decoration:underline; }
+
+  /* CARD CONTENEDORA DE LA TABLA */
+  .table-card{
+    background:#0f0f0f;
+    padding:30px;
+    border-radius:10px;
+    max-width: 980px;   /* ancho máximo en desktop */
+    margin: 0 auto;     /* centrado */
+  }
+
+  /* TABLA RESPONSIVE */
+  table{
+    width:100%;
+    border-collapse: collapse;
+    table-layout: fixed;          /* CLAVE para mobile */
+  }
+
+  th{
+    background:#121212;
+    color:#D4BA67;
+    padding:14px;
+    font-family:'Cinzel', serif;
+    font-size:18px;
+  }
+
+  td{
+    padding:12px;
+    border-bottom:1px solid #d8c27a;
+    font-family:'Montserrat', sans-serif;
+    color:#111;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;      /* CLAVE para texto largo */
+  }
+
   tr:nth-child(even) td { background:#ffffff; }
   tr:nth-child(odd) td { background:#f0f0f0; }
   tr:hover td { background:#1b1b1b; color:#D4BA67; transition:0.2s; }
+
+  /* AJUSTES PARA CELULAR */
+  @media (max-width: 600px){
+    th{ font-size:16px; padding:12px; }
+    td{ font-size:14px; padding:10px; }
+    .table-card{ padding:15px; }
+  }
 </style>
-    </style>
+
 
 <header style="display:flex; align-items:center; justify-content:space-between; padding:10px;">
 
@@ -59,9 +98,9 @@
 
 </section>
    
- <div style="background:#0f0f0f; padding:30px; border-radius:10px;">
+ <div class="table-card">
    
-<table align="center" style="background-color:#f2f2f2; font-family:'Montserrat'; color:#111;">
+<table align="center" style="background-color:#f2f2f2;">
     <tr>
         <th colspan="2">Nuestros precios</th>
     </tr>

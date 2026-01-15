@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
 
 
+
+
 </head>
 <body bgcolor="#1b1b1b">
   <!-- J'ai change le style pour que les liens changent pas de coulour lorsqu'ils sont clickes -->
@@ -17,6 +19,34 @@
       a:visited { color:white; }  /* Il reste blanc meme apres clicker */
       a:hover { color:#D4BA67; text-decoration:underline; }    /* Lorsque on hover, il change de coulor, j'ai choisi dore */
       a:active { color:#D4BA67; text-decoration:underline; } 
+      /* MENU RESPONSIVE */
+.main-menu{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  flex-wrap:wrap;
+  margin-top:15px;
+}
+
+.main-menu a{
+  font-family:'Cinzel', serif;
+  font-size:16px;
+  padding:8px 12px;
+}
+
+/* CELULAR */
+@media (max-width: 600px){
+  .main-menu{
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+  }
+
+  .main-menu a{
+    font-size:18px;
+    padding:10px 0;
+  }
+}
     </style>
 
 <header style="display:flex; align-items:center; justify-content:space-between; padding:10px;">
@@ -39,15 +69,13 @@
    <div style="width:200px; height:200px;"></div>
 
   </header>
-<section class="hero" style="font-family: 'Cinzel', serif; color:white; text-align: center;">
-          <div>
-            <a href="index.html">Volver a inicio |</a> 
-            <a href="Services.html">Conoce nuestros servicios y precios|</a> 
-              <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita |</a>
-
-            <a href="Contact.html">Cómo llegar</a>  
-            </div>
-
+<section class="hero" style="font-family:'Cinzel', serif; color:white; text-align:center;">
+  <nav class="main-menu">
+    <a href="index.html">Inicio</a>
+    <a href="Services.html">Servicios y precios</a>
+    <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita</a>
+    <a href="Contact.html">Cómo llegar</a>
+  </nav>
 </section>
 
 <section class="content" align="center">
