@@ -8,52 +8,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
 
-
+<link rel="stylesheet" href="./MyCSS.css">
 
 
 </head>
-<body bgcolor="#1b1b1b">
-  <!-- J'ai change le style pour que les liens changent pas de coulour lorsqu'ils sont clickes -->
-    <style>
-      a { color:white; text-decoration:underline; }  /* Le lien est d'abord blanc */
-      a:visited { color:white; }  /* Il reste blanc meme apres clicker */
-      a:hover { color:#D4BA67; text-decoration:underline; }    /* Lorsque on hover, il change de coulor, j'ai choisi dore */
-      a:active { color:#D4BA67; text-decoration:underline; } 
-      /* MENU RESPONSIVE */
-.main-menu{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  flex-wrap:wrap;
-  margin: 10px auto 20px;
-  padding: 0 10px;
-}
+<body>
 
-.main-menu a{
-  background:#121212;
-  border:1px solid #D4BA67;
-  color:white;
-  text-decoration:none;     /* quita subrayado solo aquí */
-  padding:10px 12px;
-  border-radius:10px;
-  font-family:'Montserrat', sans-serif;
-  font-size:14px;
-}
-
-.main-menu a:hover{
-  background:#D4BA67;
-  color:#111;
-}
-
-/* CELULAR: en 2 columnas o 1 columna */
-@media (max-width: 600px){
-  .main-menu a{
-    width: 46%;
-    text-align:center;
-    font-size:15px;
-  }
-}
-    </style>
 
 <header style="display:flex; align-items:center; justify-content:space-between; padding:10px;">
 
@@ -72,7 +32,7 @@
   </div>
 
   <!-- Ici j'ai mis un espace pour que la flebox laisse le logo a gauche puis le texte au centre -->
-   <div style="width:200px; height:200px;"></div>
+  <div class="header-spacer"></div>
 
   </header>
 <section class="hero" style="font-family:'Cinzel', serif; text-align:center;">

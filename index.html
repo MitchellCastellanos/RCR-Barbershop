@@ -8,77 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-
+<link rel="stylesheet" href="./MyCSS.css">
 
 </head>
-<body bgcolor="#1b1b1b">
+<body>
 
   <!-- J'ai apris que si on met un <style> au debut de la page ou dans le head, tous les balises de ce type prendran ce style. Ici j'ai change le style pour que 
     les liens changent pas de coulour a blue lorsqu'ils sont clickes -->
 
-   <style>
-  /* Reset básico */
-  body { margin:0; padding:0; }
-
-  /* LINKS (global) */
-  a { color:white; text-decoration:underline; }
-  a:visited { color:white; }
-  a:hover { color:#D4BA67; text-decoration:underline; }
-  a:active { color:#D4BA67; text-decoration:underline; }
-
-  /* MENU RESPONSIVE */
-  .main-menu{
-    display:flex;
-    justify-content:center;
-    gap:10px;
-    flex-wrap:wrap;
-    margin: 10px auto 20px;
-    padding: 0 10px;
-  }
-
-  .main-menu a{
-    background:#121212;
-    border:1px solid #D4BA67;
-    color:white;
-    text-decoration:none; /* quita subrayado solo aquí */
-    padding:10px 12px;
-    border-radius:10px;
-    font-family:'Montserrat', sans-serif;
-    font-size:14px;
-  }
-
-  .main-menu a:hover{
-    background:#D4BA67;
-    color:#111;
-  }
-
-  /* HEADER */
-  header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:10px;
-    gap:10px;
-  }
-
-  .header-spacer{ width:200px; height:200px; }
-
-  /* CELULAR */
-  @media (max-width: 600px){
-    .main-menu a{
-      width:46%;
-      text-align:center;
-      font-size:15px;
-    }
-
-    header{
-      flex-direction:column;
-      text-align:center;
-    }
-
-    .header-spacer{ display:none; }
-  }
-</style>
 
 
   <header style="display:flex; align-items:center; justify-content:space-between; padding:10px;">
@@ -112,33 +49,45 @@
 </section>
 
 <section style="background-color:#121212; padding:30px;">
-    <p style="background-color: #121212; padding: 30px; font-family: 'Montserrat';  color: white; font-size: larger;">En <b>En RCR barbería</b> no solo se trata de un corte de cabello, sino de una experiencia completa.  
-            Nuestros barberos son asesores de imagen que te ayudan a encontrar el estilo que mejor va contigo. <br>
-            Ya sea un look clásico o algo moderno, te ayudamos a mantener tu cabello y barba impecables con productos de calidad y atención personalizada.</p>
+    <p style="background-color: #121212; padding: 30px; font-family: 'Montserrat';  color: white; font-size: larger;">Redefine tu imagen en RCR Barbería. Más que un servicio, un ritual de cuidado personal. Nuestros barberos combinan la asesoría de imagen con la excelencia técnica para potenciar tu mejor versión. Calidad, precisión y atención personalizada en cada detalle.</p>
 </section>
 
 
 
-<section>
+<section class="gallery">
+  <h2 class="gallery-title">Atención profesional para dama y caballero</h2>
 
-<div style="text-align: center;">
-  
-  <p style="font-family:'Cinzel'; color:#D4BA67; font-size:28px;"> Contamos con servicios para dama y caballero</p>
+  <div class="carousel" id="carousel">
+    <button class="car-btn prev" aria-label="Anterior">
 
+    </button>
 
-  <div style="background-color: #151515; display: flex; justify-content: center; overflow-x: auto; scroll-behavior: smooth; gap: 10px; padding: 30px; border-radius: 8px;">
-    <img src="./Images/Hombre1.PNG"  width="200" height: auto">
-    <img src="./Images/Mujer1.PNG"  width="200" height: auto">
-    <img src="./Images/Hombre2.PNG"  width="200" height: auto">
-    <img src="./Images/Mujer2.PNG"  width="200" height: auto">
-    <img src="./Images/Hombre3.PNG"  width="200" height: auto">
-    <img src="./Images/Mujer3.PNG"  width="200" height: auto">
-    <img src="./Images/Mujer4.PNG"  width="200" height: auto">
+    <div class="viewer" id="viewer">
+      <img src="./Images/Hombre1.PNG" alt="Estilo 1">
+      <img src="./Images/Mujer1.PNG" alt="Estilo 2">
+      <img src="./Images/Hombre2.PNG" alt="Estilo 3">
+      <img src="./Images/Mujer2.PNG" alt="Estilo 4">
+      <img src="./Images/Hombre3.PNG" alt="Estilo 5">
+      <img src="./Images/Mujer3.PNG" alt="Estilo 6">
+      <img src="./Images/Mujer4.PNG" alt="Estilo 7">
+    </div>
+
+    <button class="car-btn next" aria-label="Siguiente">
+
+    </button>
+
+    <div class="counter" id="counter">1 / 7</div>
   </div>
-  
 
-</div>
-     
+  <div class="thumbs" id="thumbs">
+    <img src="./Images/Hombre1.PNG" data-i="0" alt="thumb 1">
+    <img src="./Images/Mujer1.PNG" data-i="1" alt="thumb 2">
+    <img src="./Images/Hombre2.PNG" data-i="2" alt="thumb 3">
+    <img src="./Images/Mujer2.PNG" data-i="3" alt="thumb 4">
+    <img src="./Images/Hombre3.PNG" data-i="4" alt="thumb 5">
+    <img src="./Images/Mujer3.PNG" data-i="5" alt="thumb 6">
+    <img src="./Images/Mujer4.PNG" data-i="6" alt="thumb 7">
+  </div>
 </section>
 
 <section style="background-color:#0f0f0f; padding:40px 20px; margin-top:40px; text-align:center; border-top:1px solid #D4BA67;">
@@ -177,6 +126,50 @@
 <a href="https://www.facebook.com/rcr.carlos.2025/" target="_blank"><img src="./Images/Logo Facebook.png" width="50" height="50"></a><br>
 <p>© 2026 Todos los derechos reservados</p>
 </section>
+
+<script>
+  const viewer = document.getElementById('viewer');
+  const thumbs = document.getElementById('thumbs');
+  const counter = document.getElementById('counter');
+  const slides = Array.from(viewer.querySelectorAll('img'));
+  const total = slides.length;
+
+  let current = 0;
+
+  function goTo(i){
+    current = Math.max(0, Math.min(total-1, i));
+    viewer.scrollTo({ left: viewer.clientWidth * current, behavior: 'smooth' });
+    counter.textContent = (current+1) + " / " + total;
+
+    thumbs.querySelectorAll('img').forEach(t => t.classList.remove('active'));
+    const activeThumb = thumbs.querySelector(`img[data-i="${current}"]`);
+    if(activeThumb) activeThumb.classList.add('active');
+  }
+
+  document.querySelector('.car-btn.prev').addEventListener('click', () => goTo(current-1));
+  document.querySelector('.car-btn.next').addEventListener('click', () => goTo(current+1));
+
+  thumbs.addEventListener('click', (e) => {
+    if(e.target.tagName === 'IMG'){
+      goTo(parseInt(e.target.dataset.i, 10));
+    }
+  });
+
+  // Detectar slide actual al swippear
+  viewer.addEventListener('scroll', () => {
+    const i = Math.round(viewer.scrollLeft / viewer.clientWidth);
+    if(i !== current){
+      current = i;
+      counter.textContent = (current+1) + " / " + total;
+      thumbs.querySelectorAll('img').forEach(t => t.classList.remove('active'));
+      const activeThumb = thumbs.querySelector(`img[data-i="${current}"]`);
+      if(activeThumb) activeThumb.classList.add('active');
+    }
+  });
+
+  // Init
+  goTo(0);
+</script>
 
 </body>
 </html>
