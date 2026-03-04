@@ -7,49 +7,68 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="./MyCSS.css">
 
 </head>
 <body>
 
  
+<header class="py-3 border-bottom border-warning">
+  <div class="container">
+    <div class="row align-items-center gy-2">
+      <div class="col-12 col-md-3 text-center text-md-start">
+        <a href="index.html" class="d-inline-block">
+          <img src="./Images/Logo_RCR_2025.PNG" class="img-fluid" style="max-width:150px;" alt="RCR Logo">
+        </a>
+      </div>
 
-<header style="display:flex; align-items:center; justify-content:space-between; padding:10px;">
+      <div class="col-12 col-md-6 text-center">
+        <h1 class="m-0" style="font-family:'Cinzel'; color:#D4BA67;">RCR Barbería y salón</h1>
+        <p class="m-0 text-white" style="font-family:'Cinzel';">
+          Donde el estilo se combina con la asesoría y el mejor trato.
+        </p>
+      </div>
 
-  <a href="index.html">
-    <img src="./Images/Logo_RCR_2025.PNG" style="width:100%; max-width:150px; height:auto;">
-  </a>  
-
-  <div style="display:flex; flex-direction:column; align-items:center;">
-
-  <h1 style="font-family: 'Cinzel'; color: #D4BA67; text-align: center;">
-    RCR Barbería y salón
-  </h1>
-  <h2 style="font-family: 'Cinzel', serif; color: white; text-align: center;"> 
-    Donde el estilo se combina con la asesoría y el mejor trato.
-  </h2>
+<div class="col-12 col-md-3 d-none d-md-block"></div>
+    </div>
   </div>
+</header>
 
-  <!-- Ici j'ai mis un espace pour que la flebox laisse le logo a gauche puis le texte au centre -->
-  <div class="header-spacer"></div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-warning">
+  <div class="container">
+    <a class="navbar-brand d-lg-none" href="index.html" style="font-family:'Cinzel'; color:#D4BA67;">RCR</a>
 
-  </header>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#rcrNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-<section class="hero" style="font-family:'Cinzel', serif; text-align:center;">
-  <nav class="main-menu">
-    <a href="index.html">Inicio</a>
-    <a href="Services.html">Servicios</a>
-    <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita</a>
-    <a href="Contact.html">Ubicación y horarios</a>
-  </nav>
-</section>
+    <div class="collapse navbar-collapse" id="rcrNav">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+        <li class="nav-item"><a class="nav-link" href="Services.html">Servicios</a></li>
+        <li class="nav-item"><a class="nav-link" href="Contact.html">Ubicación y horarios</a></li>
+      </ul>
+
+<button
+  id="Anywhere_button_iframe"
+  class="anywhere-book-now-button btn btn-warning fw-semibold"
+  data-booking-url="https://gabansolutions.setmore.com"
+  data-new-tab="false">
+  Reservar cita
+</button>
+    </div>
+  </div>
+</nav>
    
- <div class="table-card">
-   
-<table align="center" style="background-color:#f2f2f2;">
-    <tr>
-        <th colspan="2">Nuestros precios</th>
-    </tr>
+ <main class="container my-4">
+
+  <div class="card bg-dark text-white border-warning">
+    <div class="card-body">
+      <h2 class="text-center mb-3" style="font-family:'Cinzel'; color:#D4BA67;">Nuestros precios</h2>
+
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0">
          <tr>
         <th>Tipo de servicio</th>
         <th>Costo*</th>
@@ -107,12 +126,19 @@
         <td>Recubrimiento de capas o tinte*</td>
         <td>$600.00</td>
     </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
 
    
 </table>
 
 </div> 
-<div style="display:flex; justify-content:center; font-family: 'Montserrat', sans-serif; color: white;">
+    <div class="card-body" style="font-family:'Montserrat';">
+      
 <ul><li><b>*Los precios marcados con asterisco son aproximados y dependerán de:</b></li>
  <ol>
     <li>Largo del cabello (para ondulados, semi-ondulados, permanentes, keratina, efectos de color, recubrimiento de capas, etc.)</li>
@@ -121,23 +147,21 @@
 </ol>
 <li><b>Para información adicional o eventos, por favor comunícate con nosotros.</b></li>
 </ul>
-</div>
+    </div>
+  </div>
+  </div>
+
+</main>
+
 </section>
-<div style="text-align:center;">
-  <a href="https://wa.me/5214423536769" target="_blank"
-     style="background-color:#D4BA67;
-            color:black;
-            padding:10px 20px;
-            text-decoration:none;
-            font-family:'Cinzel', serif;">
-    Agenda tu cita vía WhatsApp
-  </a>
-</div>
+
 <section class="footer" align="center" style="font-family: 'Cinzel'; color:white">
   
 <a href="https://www.instagram.com/rcrbarberiasalon/" target="_blank"><img src="./Images/Logo instagram.png" width="50" height="50"></a>
 <a href="https://www.facebook.com/rcr.carlos.2025/" target="_blank"><img src="./Images/Logo Facebook.png" width="50" height="50"></a><br>
 <p>© 2026 Todos los derechos reservados</p>
 </section>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script id="anywhere_book_now_script" src="https://assets.setmore.com/integration/book-now/live/v1/anywhere-book-now.js"></script>
 </body>
 </html>

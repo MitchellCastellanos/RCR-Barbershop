@@ -8,52 +8,71 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="./MyCSS.css">
 
 </head>
 <body>
 
-  <!-- J'ai apris que si on met un <style> au debut de la page ou dans le head, tous les balises de ce type prendran ce style. Ici j'ai change le style pour que 
-    les liens changent pas de coulour a blue lorsqu'ils sont clickes -->
 
+<header class="py-3 border-bottom border-warning">
+  <div class="container">
+    <div class="row align-items-center gy-2">
+      <div class="col-12 col-md-3 text-center text-md-start">
+        <a href="index.html" class="d-inline-block">
+          <img src="./Images/Logo_RCR_2025.PNG" class="img-fluid" style="max-width:150px;" alt="RCR Logo">
+        </a>
+      </div>
 
+      <div class="col-12 col-md-6 text-center">
+        <h1 class="m-0" style="font-family:'Cinzel'; color:#D4BA67;">RCR Barbería y salón</h1>
+        <p class="m-0 text-white" style="font-family:'Cinzel';">
+          Donde el estilo se combina con la asesoría y el mejor trato.
+        </p>
+      </div>
 
-  <header style="display:flex; align-items:center; justify-content:space-between; padding:10px;">
+<div class="col-12 col-md-3 d-none d-md-block"></div>
+    </div>
+  </div>
+</header>
 
-  <a href="index.html">
-    <img src="./Images/Logo_RCR_2025.PNG" style="width:100%; max-width:150px; height:auto;">
-  </a>  
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-warning">
+  <div class="container">
+    <a class="navbar-brand d-lg-none" href="index.html" style="font-family:'Cinzel'; color:#D4BA67;">RCR</a>
 
-  <div style="display:flex; flex-direction:column; align-items:center;">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#rcrNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-  <h1 style="font-family: 'Cinzel'; color: #D4BA67; text-align: center;">
-    RCR Barbería y salón
-  </h1>
-  <h2 style="font-family: 'Cinzel', serif; color: white; text-align: center;"> 
-    Donde el estilo se combina con la asesoría y el mejor trato.
-  </h2>
+    <div class="collapse navbar-collapse" id="rcrNav">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+        <li class="nav-item"><a class="nav-link" href="Services.html">Servicios</a></li>
+        <li class="nav-item"><a class="nav-link" href="Contact.html">Ubicación y horarios</a></li>
+      </ul>
+
+<button
+  id="Anywhere_button_iframe"
+  class="anywhere-book-now-button btn btn-warning fw-semibold"
+  data-booking-url="https://gabansolutions.setmore.com"
+  data-new-tab="false">
+  Reservar cita
+</button>
+    </div>
+  </div>
+</nav>
+
+<main class="container my-4">
+  <div class="card bg-dark text-white border-warning">
+    <div class="card-body p-4" style="font-family:'Montserrat';">
+      <p class="mb-0">
+        Redefine tu imagen en RCR Barbería. Más que un servicio, un ritual de cuidado personal. Nuestros barberos combinan la asesoría de imagen con la excelencia
+        técnica para potenciar tu mejor versión. Calidad, precisión y atención personalizada en cada detalle.
+      </p>
+    </div>
   </div>
 
-  <!-- Ici j'ai mis un espace pour que la flebox laisse le logo a gauche puis le texte au centre -->
-   <div class="header-spacer"></div>
-
-  </header>
-
-<section class="hero" style="font-family:'Cinzel', serif; text-align:center;">
-  <nav class="main-menu">
-    <a href="index.html">Inicio</a>
-    <a href="Services.html">Servicios</a>
-    <a href="https://wa.me/5214423536769" target="_blank">Agenda tu cita</a>
-    <a href="Contact.html">Ubicación y horarios</a>
-  </nav>
-</section>
-
-<section style="background-color:#121212; padding:30px;">
-    <p style="background-color: #121212; padding: 30px; font-family: 'Montserrat';  color: white; font-size: larger;">Redefine tu imagen en RCR Barbería. Más que un servicio, un ritual de cuidado personal. Nuestros barberos combinan la asesoría de imagen con la excelencia técnica para potenciar tu mejor versión. Calidad, precisión y atención personalizada en cada detalle.</p>
-</section>
-
-
-
+  <div class="my-4">
 <section class="gallery">
   <h2 class="gallery-title">Atención profesional para dama y caballero</h2>
 
@@ -63,63 +82,114 @@
     </button>
 
     <div class="viewer" id="viewer">
-      <img src="./Images/Hombre1.PNG" alt="Estilo 1">
-      <img src="./Images/Mujer1.PNG" alt="Estilo 2">
-      <img src="./Images/Hombre2.PNG" alt="Estilo 3">
-      <img src="./Images/Mujer2.PNG" alt="Estilo 4">
-      <img src="./Images/Hombre3.PNG" alt="Estilo 5">
-      <img src="./Images/Mujer3.PNG" alt="Estilo 6">
-      <img src="./Images/Mujer4.PNG" alt="Estilo 7">
+      <img src="./Borradores/Balayage.JPG" alt="Estilo 1">
+      <img src="./Borradores/Balayage_largo.jpg.JPG" alt="Estilo 2">
+      <img src="./Borradores/Corte hombre 3.JPG" alt="Estilo 3">
+      <img src="./Borradores/Corte hombre1.JPG" alt="Estilo 4">
+      <img src="./Borradores/Corte hombre2.JPG" alt="Estilo 5">
+      <img src="./Borradores/IMG_4143.JPG" alt="Estilo 6">
+      <img src="./Borradores/Nanoplastia.JPG" alt="Estilo 7">
+      <img src="./Borradores/Trenzas.JPG" alt="Estilo 8">
     </div>
+    
 
     <button class="car-btn next" aria-label="Siguiente">
 
     </button>
 
-    <div class="counter" id="counter">1 / 7</div>
+    <div class="counter" id="counter">1 / 8</div>
   </div>
 
   <div class="thumbs" id="thumbs">
-    <img src="./Images/Hombre1.PNG" data-i="0" alt="thumb 1">
-    <img src="./Images/Mujer1.PNG" data-i="1" alt="thumb 2">
-    <img src="./Images/Hombre2.PNG" data-i="2" alt="thumb 3">
-    <img src="./Images/Mujer2.PNG" data-i="3" alt="thumb 4">
-    <img src="./Images/Hombre3.PNG" data-i="4" alt="thumb 5">
-    <img src="./Images/Mujer3.PNG" data-i="5" alt="thumb 6">
-    <img src="./Images/Mujer4.PNG" data-i="6" alt="thumb 7">
+    <img src="./Borradores/Balayage.JPG" data-i="0" alt="thumb 1">
+    <img src="./Borradores/Balayage_largo.jpg.JPG" data-i="1" alt="thumb 2">
+    <img src="./Borradores/Corte hombre 3.JPG" data-i="2" alt="thumb 3">
+    <img src="./Borradores/Corte hombre1.JPG" data-i="3" alt="thumb 4">
+    <img src="./Borradores/Corte hombre2.JPG" data-i="4" alt="thumb 5">
+    <img src="./Borradores/IMG_4143.JPG" data-i="5" alt="thumb 6">
+    <img src="./Borradores/Nanoplastia.JPG" data-i="6" alt="thumb 7">
+    <img src="./Borradores/Trenzas.JPG" data-i="7" alt="thumb 8">
   </div>
 </section>
 
-<section style="background-color:#0f0f0f; padding:40px 20px; margin-top:40px; text-align:center; border-top:1px solid #D4BA67;">
-    <h2 style="font-family:'Cinzel'; color:#D4BA67; font-size:28px;">
-        Queremos conocer tu opinión
-    </h2>
-    <p style="font-family:'Montserrat'; color:white; max-width:600px; margin:10px auto 30px;">
-        Tu experiencia nos ayuda a mejorar y seguir ofreciendo el mejor servicio. 
-    </p>
+</div>
 
-    <div style="display:flex; justify-content:center; gap:20px; flex-wrap:wrap;">
-        <a href="https://forms.gle/G6pdmRBXSp6LeKgr6" target="_blank">
-            <img src="./Images/Boton Encuesta.png" style="width:auto; height: 100px; border-radius:10px;">
-        </a>
+<section class="container my-5">
 
-        <a href="https://www.google.com/search?hl=en-CA&gl=ca&q=RCR+Barber%C3%ADa+Sal%C3%B3n,+Atenas,+Jerez+101+B,+Los+Sauces,+76114+Santiago+de+Quer%C3%A9taro,+Qro.,+Mexico&ludocid=10896036416418766935&lsig=AB86z5VZacI5tAJtuzdIunoeFj1o&hl=en&gl=CA#" target="_blank">
-            <img src="./Images/Boton Google.png" style="width:300px; border-radius:10px;">
-        </a>
-    </div>
+<div class="card bg-dark text-white border-warning">
+<div class="card-body text-center p-4">
+
+<h2 class="mb-2" style="font-family:'Cinzel'; color:#D4BA67;">
+Queremos conocer tu opinión
+</h2>
+
+<p class="mb-4" style="font-family:'Montserrat';">
+Tu experiencia nos ayuda a mejorar y seguir ofreciendo el mejor servicio.
+</p>
+
+
+<div class="row g-4 justify-content-center">
+
+<!-- ENCUESTA -->
+<div class="col-md-5">
+<a href="https://forms.gle/G6pdmRBXSp6LeKgr6" target="_blank" class="text-decoration-none">
+
+<div class="card h-100 bg-black text-white border-warning review-card">
+
+<div class="card-body text-center p-4">
+
+<img src="./Images/Logo_RCR_2025.PNG" width="80" class="mb-3">
+
+<h4 style="font-family:'Cinzel'; color:#D4BA67;">
+Responder encuesta
+</h4>
+
+<p class="small">
+Queremos conocer tu opinión sobre tu experiencia en RCR.
+</p>
+
+</div>
+</div>
+
+</a>
+</div>
+
+
+<!-- GOOGLE REVIEW -->
+<div class="col-md-5">
+
+<a href="https://www.google.com/search?hl=en-CA&gl=ca&q=RCR+Barber%C3%ADa+Sal%C3%B3n,+Atenas,+Jerez+101+B,+Los+Sauces,+76114+Santiago+de+Quer%C3%A9taro,+Qro.,+Mexico&ludocid=10896036416418766935&lsig=AB86z5VZacI5tAJtuzdIunoeFj1o&hl=en&gl=CA#" target="_blank" class="text-decoration-none">
+
+<div class="card h-100 bg-black text-white border-warning review-card">
+
+<div class="card-body text-center p-4">
+
+<img src="./Images/finalgooglemaps.png" width="80" class="mb-3">
+
+<h4 style="font-family:'Cinzel'; color:#D4BA67;">
+Escribir reseña
+</h4>
+
+<p class="small">
+Comparte tu experiencia en Google y ayuda a otros clientes.
+</p>
+
+</div>
+</div>
+
+</a>
+</div>
+
+
+</div>
+</div>
+</div>
+
 </section>
 
+</main>
 
-<div style="text-align:center;">
-  <a href="https://wa.me/5214423536769" target="_blank"
-     style="background-color:#D4BA67;
-            color:black;
-            padding:10px 20px;
-            text-decoration:none;
-            font-family:'Cinzel', serif;">
-    Agenda tu cita vía WhatsApp
-  </a>
-</div>
+
 <section class="footer" align="center" style="font-family: 'Cinzel'; color:white">
   
 <a href="https://www.instagram.com/rcrbarberiasalon/" target="_blank"><img src="./Images/Logo instagram.png" width="50" height="50"></a>
@@ -170,6 +240,7 @@
   // Init
   goTo(0);
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script id="anywhere_book_now_script" src="https://assets.setmore.com/integration/book-now/live/v1/anywhere-book-now.js"></script>
 </body>
 </html>
