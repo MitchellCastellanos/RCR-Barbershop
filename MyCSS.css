@@ -238,10 +238,12 @@ MOBILE BOOKING CTA
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1050;
+  z-index: 9999;
+  width: 100%;
   padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
   background: rgba(15,15,15,0.96);
   border-top: 1px solid rgba(212,186,103,.35);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   box-shadow: 0 -8px 24px rgba(0,0,0,0.35);
 }
@@ -256,11 +258,18 @@ MOBILE BOOKING CTA
   border-radius: 999px;
   font-size: 1rem;
   padding: 14px 18px;
+  text-decoration: none;
+}
+
+.mobile-book-btn:hover,
+.mobile-book-btn:focus,
+.mobile-book-btn:active{
+  text-decoration: none;
 }
 
 /* para que el contenido/footer no quede tapado */
 @media (max-width: 991.98px){
   body{
-    padding-bottom: 90px;
+    padding-bottom: 92px;
   }
 }
