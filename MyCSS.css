@@ -234,40 +234,33 @@ MOBILE BOOKING CTA
 =============================== */
 
 .mobile-book-bar{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
-  z-index:1050;
-  padding:12px 14px calc(12px + env(safe-area-inset-bottom));
-  background:rgba(15,15,15,0.96);
-  border-top:1px solid rgba(212,186,103,.35);
-  backdrop-filter:blur(8px);
-  box-shadow:0 -8px 24px rgba(0,0,0,0.35);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(15,15,15,0.96);
+  border-top: 1px solid rgba(212,186,103,.35);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.35);
 }
 
 .mobile-book-btn{
-  width:100%;
-  max-width:680px;
-  margin:0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:999px;
-  font-size:1rem;
-  padding:14px 18px;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 1rem;
+  padding: 14px 18px;
 }
 
-/* Para que el footer no quede tapado por la barra fija */
-@media (max-width:991.98px){
+/* para que el contenido/footer no quede tapado */
+@media (max-width: 991.98px){
   body{
-    padding-bottom:90px;
-  }
-}
-
-/* En desktop no la mostramos */
-@media (min-width:992px){
-  .mobile-book-bar{
-    display:none !important;
+    padding-bottom: 90px;
   }
 }
