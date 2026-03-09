@@ -189,3 +189,42 @@ background-color:#b89a4d;
 border-color:#b89a4d;
 color:#111;
 }
+
+.service-highlight-card{
+  transition: all 0.25s ease;
+  background: linear-gradient(180deg, #111 0%, #181818 100%);
+}
+
+.service-highlight-card:hover{
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+}
+
+.service-icon{
+  width:72px;
+  height:72px;
+  margin:0 auto;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid #D4BA67;
+  color:#D4BA67;
+  font-size:30px;
+  background:#0f0f0f;
+}
+
+.services-ladies-card{
+  background: linear-gradient(180deg, #111 0%, #181818 100%);
+}
+
+.ladies-icon{
+  font-size: 2.2rem;
+  color: #D4BA67;
+  display: inline-block;
+}
+
+.ladies-note{
+  color: rgba(255,255,255,0.78);
+  font-family:'Montserrat', sans-serif;
+}
