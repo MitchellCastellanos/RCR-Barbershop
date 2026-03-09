@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Express Website 72H | GABAN Solutions Numériques</title>
+  <meta name="description" content="Professional website delivered in 72 hours for small businesses in Montréal and Québec." />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="./MyCSS.css">
+
+  <style>
+    .hero-dark {
+      background: linear-gradient(135deg, #111111 0%, #1c1c1c 100%);
+    }
+    .price-card {
+      border: 2px solid #111111;
+    }
+    .icon-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #111111;
+      color: #fff;
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="./index.html">
+      GABAN <span class="fw-normal">Solutions Numériques</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navMain">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="./index.html" data-i18n="nav_home">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="./services.html" data-i18n="nav_services">Services</a></li>
+        <li class="nav-item"><a class="nav-link active" href="./express.html" data-i18n="nav_express">Express</a></li>
+        <li class="nav-item"><a class="nav-link" href="./portfolio.html" data-i18n="nav_work">Work</a></li>
+        <li class="nav-item"><a class="nav-link" href="./about.html" data-i18n="nav_about">About</a></li>
+        <li class="nav-item"><a class="nav-link" href="./contact.html" data-i18n="nav_contact">Contact</a></li>
+      </ul>
+
+      <a class="btn btn-dark ms-lg-3" href="./contact.html" data-i18n="nav_cta">Free Consultation</a>
+
+      <div class="ms-lg-3 mt-3 mt-lg-0 d-flex align-items-center gap-2">
+        <button class="btn btn-outline-dark btn-sm" id="btnEN" type="button">EN</button>
+        <button class="btn btn-outline-dark btn-sm" id="btnFR" type="button">FR</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero-dark text-white section">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7">
+        <div class="text-uppercase small fw-semibold text-warning mb-2" data-i18n="exp_tag">
+          Fast. Professional. Ready to launch.
+        </div>
+
+        <h1 class="display-5 fw-bold mb-3" data-i18n="exp_h1">
+          Professional Website in 72 Hours
+        </h1>
+
+        <p class="lead text-white-50 mb-4" data-i18n="exp_lead">
+          Get a modern, mobile-friendly business website delivered fast — without the stress, delays, or DIY mess.
+        </p>
+
+        <div class="d-flex gap-2 flex-wrap">
+          <a class="btn btn-warning btn-lg" href="./contact.html" data-i18n="exp_cta1">Start Your Website</a>
+          <a class="btn btn-outline-light btn-lg" href="#pricing" data-i18n="exp_cta2">See Pricing</a>
+        </div>
+
+        <div class="mt-4 small text-white-50" data-i18n="exp_trust">
+          Ideal for local businesses that need to get online quickly.
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <img src="./Images/hero-dashboard.png" class="img-fluid rounded shadow" alt="Business dashboard">
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- WHO IS THIS FOR -->
+<section class="section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" data-i18n="exp_for_title">Who This Is For</h2>
+      <p class="text-muted mb-0" data-i18n="exp_for_sub">
+        Express websites are built for businesses that need speed without sacrificing quality.
+      </p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-3"><div class="card h-100"><div class="card-body text-center">
+        <div class="icon-circle mb-3"><i class="bi bi-shop"></i></div>
+        <div class="fw-semibold" data-i18n="exp_for_1t">New Businesses</div>
+        <div class="text-muted small" data-i18n="exp_for_1d">Launch fast with a real professional presence.</div>
+      </div></div></div>
+
+      <div class="col-md-3"><div class="card h-100"><div class="card-body text-center">
+        <div class="icon-circle mb-3"><i class="bi bi-tools"></i></div>
+        <div class="fw-semibold" data-i18n="exp_for_2t">Contractors & Services</div>
+        <div class="text-muted small" data-i18n="exp_for_2d">Get leads faster with a clear and trustworthy website.</div>
+      </div></div></div>
+
+      <div class="col-md-3"><div class="card h-100"><div class="card-body text-center">
+        <div class="icon-circle mb-3"><i class="bi bi-scissors"></i></div>
+        <div class="fw-semibold" data-i18n="exp_for_3t">Salons & Barbershops</div>
+        <div class="text-muted small" data-i18n="exp_for_3d">Perfect for businesses that need contact and booking-ready pages.</div>
+      </div></div></div>
+
+      <div class="col-md-3"><div class="card h-100"><div class="card-body text-center">
+        <div class="icon-circle mb-3"><i class="bi bi-briefcase"></i></div>
+        <div class="fw-semibold" data-i18n="exp_for_4t">Consultants</div>
+        <div class="text-muted small" data-i18n="exp_for_4d">Look professional online without waiting weeks.</div>
+      </div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT'S INCLUDED -->
+<section class="section bg-light">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" data-i18n="exp_inc_title">What’s Included</h2>
+      <p class="text-muted mb-0" data-i18n="exp_inc_sub">
+        Everything you need to launch fast and start looking professional online.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="bi bi-window fs-1 mb-3"></i>
+            <h5 class="fw-bold" data-i18n="exp_inc_1t">Up to 5 Pages</h5>
+            <p class="text-muted small mb-0" data-i18n="exp_inc_1d">Home, services, about, contact, and one extra page if needed.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="bi bi-phone fs-1 mb-3"></i>
+            <h5 class="fw-bold" data-i18n="exp_inc_2t">Mobile Responsive</h5>
+            <p class="text-muted small mb-0" data-i18n="exp_inc_2d">Your website looks clean and works well on phones and tablets.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="bi bi-envelope fs-1 mb-3"></i>
+            <h5 class="fw-bold" data-i18n="exp_inc_3t">Lead Capture</h5>
+            <p class="text-muted small mb-0" data-i18n="exp_inc_3d">Contact forms and call-to-action sections to help generate inquiries.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="bi bi-search fs-1 mb-3"></i>
+            <h5 class="fw-bold" data-i18n="exp_inc_4t">Basic SEO Setup</h5>
+            <p class="text-muted small mb-0" data-i18n="exp_inc_4d">Titles, meta descriptions, structure, and local business foundations.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="bi bi-shield-check fs-1 mb-3"></i>
+            <h5 class="fw-bold" data-i18n="exp_inc_5t">SSL & Setup</h5>
+            <p class="text-muted small mb-0" data-i18n="exp_inc_5d">We connect the domain and make sure your site launches securely.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="bi bi-life-preserver fs-1 mb-3"></i>
+            <h5 class="fw-bold" data-i18n="exp_inc_6t">30 Days Support</h5>
+            <p class="text-muted small mb-0" data-i18n="exp_inc_6d">Minor fixes and support after launch so you’re not left alone.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section class="section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" data-i18n="exp_proc_title">How It Works</h2>
+      <p class="text-muted mb-0" data-i18n="exp_proc_sub">
+        A simple process designed to move fast and avoid unnecessary delays.
+      </p>
+    </div>
+
+    <div class="row g-4 text-center">
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <div class="display-6 fw-bold mb-2">1</div>
+          <div class="fw-semibold" data-i18n="exp_proc_1t">Send Your Content</div>
+          <div class="text-muted small" data-i18n="exp_proc_1d">Logo, text, photos, and basic business info.</div>
+        </div></div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <div class="display-6 fw-bold mb-2">2</div>
+          <div class="fw-semibold" data-i18n="exp_proc_2t">We Build</div>
+          <div class="text-muted small" data-i18n="exp_proc_2d">We design and develop your website quickly and cleanly.</div>
+        </div></div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <div class="display-6 fw-bold mb-2">3</div>
+          <div class="fw-semibold" data-i18n="exp_proc_3t">You Review</div>
+          <div class="text-muted small" data-i18n="exp_proc_3d">You review the site and request final small changes.</div>
+        </div></div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <div class="display-6 fw-bold mb-2">4</div>
+          <div class="fw-semibold" data-i18n="exp_proc_4t">Launch</div>
+          <div class="text-muted small" data-i18n="exp_proc_4d">Your website goes live and starts working for your business.</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section bg-light" id="pricing">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-6">
+        <div class="card price-card shadow">
+          <div class="card-body p-5 text-center">
+            <div class="text-uppercase small fw-semibold text-muted mb-2" data-i18n="exp_price_tag">Express Package</div>
+            <h2 class="display-5 fw-bold mb-2" data-i18n="exp_price">$599 CAD</h2>
+            <p class="text-muted mb-4" data-i18n="exp_price_sub">
+              Professional website delivered in 72 hours.
+            </p>
+
+            <ul class="list-unstyled mb-4">
+              <li class="mb-2" data-i18n="exp_price_b1">Up to 5 custom pages</li>
+              <li class="mb-2" data-i18n="exp_price_b2">Mobile-responsive design</li>
+              <li class="mb-2" data-i18n="exp_price_b3">Contact forms & lead capture</li>
+              <li class="mb-2" data-i18n="exp_price_b4">Basic SEO optimization</li>
+              <li class="mb-2" data-i18n="exp_price_b5">SSL security included</li>
+              <li class="mb-2" data-i18n="exp_price_b6">30 days support included</li>
+            </ul>
+
+            <a class="btn btn-dark btn-lg" href="./contact.html" data-i18n="exp_price_btn">Start Now</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY NOT DIY -->
+<section class="section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" data-i18n="exp_compare_title">Why Express Beats DIY</h2>
+      <p class="text-muted mb-0" data-i18n="exp_compare_sub">
+        Website builders look easy until they eat your time and still look mediocre.
+      </p>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th data-i18n="exp_tbl_feature">Feature</th>
+            <th data-i18n="exp_tbl_express">Express Website</th>
+            <th data-i18n="exp_tbl_diy">DIY Builder</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-i18n="exp_tbl_1f">Time to launch</td>
+            <td data-i18n="exp_tbl_1e">72 hours</td>
+            <td data-i18n="exp_tbl_1d">Weeks or months</td>
+          </tr>
+          <tr>
+            <td data-i18n="exp_tbl_2f">Design quality</td>
+            <td data-i18n="exp_tbl_2e">Professional</td>
+            <td data-i18n="exp_tbl_2d">Template-based</td>
+          </tr>
+          <tr>
+            <td data-i18n="exp_tbl_3f">Technical setup</td>
+            <td data-i18n="exp_tbl_3e">Done for you</td>
+            <td data-i18n="exp_tbl_3d">You do it</td>
+          </tr>
+          <tr>
+            <td data-i18n="exp_tbl_4f">Stress level</td>
+            <td data-i18n="exp_tbl_4e">Low</td>
+            <td data-i18n="exp_tbl_4d">High</td>
+          </tr>
+          <tr>
+            <td data-i18n="exp_tbl_5f">Built to convert</td>
+            <td data-i18n="exp_tbl_5e">Yes</td>
+            <td data-i18n="exp_tbl_5d">Usually not</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section bg-light">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" data-i18n="exp_test_title">What Business Owners Want</h2>
+      <p class="text-muted mb-0" data-i18n="exp_test_sub">
+        The goal is simple: get online fast and look professional.
+      </p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+          <p class="mb-3" data-i18n="exp_test_1q">“I just need a clean website that makes my business look real and professional.”</p>
+          <div class="small text-muted" data-i18n="exp_test_1a">— Typical local business owner</div>
+        </div></div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+          <p class="mb-3" data-i18n="exp_test_2q">“I don’t have time to learn a website builder. I need it done fast.”</p>
+          <div class="small text-muted" data-i18n="exp_test_2a">— Service provider</div>
+        </div></div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+          <p class="mb-3" data-i18n="exp_test_3q">“If clients search for me online, I need something solid they can trust.”</p>
+          <div class="small text-muted" data-i18n="exp_test_3a">— Small business owner</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" data-i18n="exp_faq_title">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="accordion" id="faqExpress">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1" data-i18n="exp_faq_1q">
+            Is 72 hours really enough for a quality website?
+          </button>
+        </h2>
+        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqExpress">
+          <div class="accordion-body" data-i18n="exp_faq_1a">
+            Yes — as long as the project is focused, content is ready, and the goal is a clean business website, not a huge custom platform.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2" data-i18n="exp_faq_2q">
+            What do you need from me to start?
+          </button>
+        </h2>
+        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqExpress">
+          <div class="accordion-body" data-i18n="exp_faq_2a">
+            Your business name, logo if you have one, your text, services, photos, and your contact details.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3" data-i18n="exp_faq_3q">
+            Can I add more features later?
+          </button>
+        </h2>
+        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqExpress">
+          <div class="accordion-body" data-i18n="exp_faq_3a">
+            Absolutely. This express package is a strong starting point. More pages, SEO, or automation can be added later.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="section bg-dark text-white text-center">
+  <div class="container">
+    <h2 class="fw-bold mb-3" data-i18n="exp_final_title">Ready to launch your website fast?</h2>
+    <p class="text-white-50 mb-4" data-i18n="exp_final_sub">
+      Get online quickly with a professional website designed for real business results.
+    </p>
+    <a class="btn btn-warning btn-lg" href="./contact.html" data-i18n="exp_final_btn">Get Started</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="py-4 border-top">
+  <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
+    <div class="small text-muted">© <span id="year"></span> GABAN Solutions Numériques — Montréal, QC</div>
+    <div class="small">
+      <a class="text-decoration-none me-3" href="./services.html" data-i18n="nav_services">Services</a>
+      <a class="text-decoration-none me-3" href="./express.html" data-i18n="nav_express">Express</a>
+      <a class="text-decoration-none" href="./contact.html" data-i18n="nav_contact">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+
+<script>
+  const i18n = {
+    en: {
+      nav_home: "Home",
+      nav_services: "Services",
+      nav_express: "Express",
+      nav_work: "Work",
+      nav_about: "About",
+      nav_contact: "Contact",
+      nav_cta: "Free Consultation",
+
+      exp_tag: "Fast. Professional. Ready to launch.",
+      exp_h1: "Professional Website in 72 Hours",
+      exp_lead: "Get a modern, mobile-friendly business website delivered fast — without the stress, delays, or DIY mess.",
+      exp_cta1: "Start Your Website",
+      exp_cta2: "See Pricing",
+      exp_trust: "Ideal for local businesses that need to get online quickly.",
+
+      exp_for_title: "Who This Is For",
+      exp_for_sub: "Express websites are built for businesses that need speed without sacrificing quality.",
+      exp_for_1t: "New Businesses",
+      exp_for_1d: "Launch fast with a real professional presence.",
+      exp_for_2t: "Contractors & Services",
+      exp_for_2d: "Get leads faster with a clear and trustworthy website.",
+      exp_for_3t: "Salons & Barbershops",
+      exp_for_3d: "Perfect for businesses that need contact and booking-ready pages.",
+      exp_for_4t: "Consultants",
+      exp_for_4d: "Look professional online without waiting weeks.",
+
+      exp_inc_title: "What’s Included",
+      exp_inc_sub: "Everything you need to launch fast and start looking professional online.",
+      exp_inc_1t: "Up to 5 Pages",
+      exp_inc_1d: "Home, services, about, contact, and one extra page if needed.",
+      exp_inc_2t: "Mobile Responsive",
+      exp_inc_2d: "Your website looks clean and works well on phones and tablets.",
+      exp_inc_3t: "Lead Capture",
+      exp_inc_3d: "Contact forms and call-to-action sections to help generate inquiries.",
+      exp_inc_4t: "Basic SEO Setup",
+      exp_inc_4d: "Titles, meta descriptions, structure, and local business foundations.",
+      exp_inc_5t: "SSL & Setup",
+      exp_inc_5d: "We connect the domain and make sure your site launches securely.",
+      exp_inc_6t: "30 Days Support",
+      exp_inc_6d: "Minor fixes and support after launch so you’re not left alone.",
+
+      exp_proc_title: "How It Works",
+      exp_proc_sub: "A simple process designed to move fast and avoid unnecessary delays.",
+      exp_proc_1t: "Send Your Content",
+      exp_proc_1d: "Logo, text, photos, and basic business info.",
+      exp_proc_2t: "We Build",
+      exp_proc_2d: "We design and develop your website quickly and cleanly.",
+      exp_proc_3t: "You Review",
+      exp_proc_3d: "You review the site and request final small changes.",
+      exp_proc_4t: "Launch",
+      exp_proc_4d: "Your website goes live and starts working for your business.",
+
+      exp_price_tag: "Express Package",
+      exp_price: "$599 CAD",
+      exp_price_sub: "Professional website delivered in 72 hours.",
+      exp_price_b1: "Up to 5 custom pages",
+      exp_price_b2: "Mobile-responsive design",
+      exp_price_b3: "Contact forms & lead capture",
+      exp_price_b4: "Basic SEO optimization",
+      exp_price_b5: "SSL security included",
+      exp_price_b6: "30 days support included",
+      exp_price_btn: "Start Now",
+
+      exp_compare_title: "Why Express Beats DIY",
+      exp_compare_sub: "Website builders look easy until they eat your time and still look mediocre.",
+      exp_tbl_feature: "Feature",
+      exp_tbl_express: "Express Website",
+      exp_tbl_diy: "DIY Builder",
+      exp_tbl_1f: "Time to launch",
+      exp_tbl_1e: "72 hours",
+      exp_tbl_1d: "Weeks or months",
+      exp_tbl_2f: "Design quality",
+      exp_tbl_2e: "Professional",
+      exp_tbl_2d: "Template-based",
+      exp_tbl_3f: "Technical setup",
+      exp_tbl_3e: "Done for you",
+      exp_tbl_3d: "You do it",
+      exp_tbl_4f: "Stress level",
+      exp_tbl_4e: "Low",
+      exp_tbl_4d: "High",
+      exp_tbl_5f: "Built to convert",
+      exp_tbl_5e: "Yes",
+      exp_tbl_5d: "Usually not",
+
+      exp_test_title: "What Business Owners Want",
+      exp_test_sub: "The goal is simple: get online fast and look professional.",
+      exp_test_1q: "“I just need a clean website that makes my business look real and professional.”",
+      exp_test_1a: "— Typical local business owner",
+      exp_test_2q: "“I don’t have time to learn a website builder. I need it done fast.”",
+      exp_test_2a: "— Service provider",
+      exp_test_3q: "“If clients search for me online, I need something solid they can trust.”",
+      exp_test_3a: "— Small business owner",
+
+      exp_faq_title: "Frequently Asked Questions",
+      exp_faq_1q: "Is 72 hours really enough for a quality website?",
+      exp_faq_1a: "Yes — as long as the project is focused, content is ready, and the goal is a clean business website, not a huge custom platform.",
+      exp_faq_2q: "What do you need from me to start?",
+      exp_faq_2a: "Your business name, logo if you have one, your text, services, photos, and your contact details.",
+      exp_faq_3q: "Can I add more features later?",
+      exp_faq_3a: "Absolutely. This express package is a strong starting point. More pages, SEO, or automation can be added later.",
+
+      exp_final_title: "Ready to launch your website fast?",
+      exp_final_sub: "Get online quickly with a professional website designed for real business results.",
+      exp_final_btn: "Get Started"
+    },
+
+    fr: {
+      nav_home: "Accueil",
+      nav_services: "Services",
+      nav_express: "Express",
+      nav_work: "Réalisations",
+      nav_about: "À propos",
+      nav_contact: "Contact",
+      nav_cta: "Consultation gratuite",
+
+      exp_tag: "Rapide. Professionnel. Prêt à lancer.",
+      exp_h1: "Site web professionnel en 72 heures",
+      exp_lead: "Obtenez un site moderne, mobile-friendly, livré rapidement — sans stress, sans délais, sans galère DIY.",
+      exp_cta1: "Démarrer votre site",
+      exp_cta2: "Voir le prix",
+      exp_trust: "Idéal pour les entreprises locales qui doivent être en ligne rapidement.",
+
+      exp_for_title: "Pour qui c’est fait",
+      exp_for_sub: "Les sites express sont conçus pour les entreprises qui veulent aller vite sans sacrifier la qualité.",
+      exp_for_1t: "Nouvelles entreprises",
+      exp_for_1d: "Lancez rapidement avec une vraie présence professionnelle.",
+      exp_for_2t: "Entrepreneurs & services",
+      exp_for_2d: "Obtenez plus de demandes avec un site clair et rassurant.",
+      exp_for_3t: "Salons & barbiers",
+      exp_for_3d: "Parfait pour les entreprises qui ont besoin de pages prêtes pour contact et rendez-vous.",
+      exp_for_4t: "Consultants",
+      exp_for_4d: "Ayez l’air pro en ligne sans attendre des semaines.",
+
+      exp_inc_title: "Ce qui est inclus",
+      exp_inc_sub: "Tout ce qu’il faut pour lancer vite et avoir une image professionnelle en ligne.",
+      exp_inc_1t: "Jusqu’à 5 pages",
+      exp_inc_1d: "Accueil, services, à propos, contact, et une page supplémentaire si nécessaire.",
+      exp_inc_2t: "Responsive mobile",
+      exp_inc_2d: "Votre site est propre et fonctionne bien sur téléphone et tablette.",
+      exp_inc_3t: "Capture de prospects",
+      exp_inc_3d: "Formulaires de contact et appels à l’action pour générer des demandes.",
+      exp_inc_4t: "SEO de base",
+      exp_inc_4d: "Titres, meta descriptions, structure et bases locales.",
+      exp_inc_5t: "SSL & configuration",
+      exp_inc_5d: "On connecte le domaine et on lance le site de façon sécurisée.",
+      exp_inc_6t: "30 jours de support",
+      exp_inc_6d: "Petites corrections et support après la mise en ligne.",
+
+      exp_proc_title: "Comment ça marche",
+      exp_proc_sub: "Un processus simple pensé pour aller vite sans complications.",
+      exp_proc_1t: "Envoyez votre contenu",
+      exp_proc_1d: "Logo, texte, photos et infos de base.",
+      exp_proc_2t: "On construit",
+      exp_proc_2d: "On conçoit et développe votre site rapidement et proprement.",
+      exp_proc_3t: "Vous révisez",
+      exp_proc_3d: "Vous regardez le site et demandez les derniers petits ajustements.",
+      exp_proc_4t: "Mise en ligne",
+      exp_proc_4d: "Votre site est en ligne et commence à travailler pour votre entreprise.",
+
+      exp_price_tag: "Forfait Express",
+      exp_price: "599 $ CAD",
+      exp_price_sub: "Site web professionnel livré en 72 heures.",
+      exp_price_b1: "Jusqu’à 5 pages personnalisées",
+      exp_price_b2: "Design responsive mobile",
+      exp_price_b3: "Formulaires & capture de prospects",
+      exp_price_b4: "SEO de base",
+      exp_price_b5: "Sécurité SSL incluse",
+      exp_price_b6: "30 jours de support inclus",
+      exp_price_btn: "Commencer",
+
+      exp_compare_title: "Pourquoi l’express bat le DIY",
+      exp_compare_sub: "Les builders semblent faciles jusqu’à ce qu’ils vous fassent perdre du temps pour un résultat moyen.",
+      exp_tbl_feature: "Critère",
+      exp_tbl_express: "Site Express",
+      exp_tbl_diy: "Builder DIY",
+      exp_tbl_1f: "Temps de lancement",
+      exp_tbl_1e: "72 heures",
+      exp_tbl_1d: "Semaines ou mois",
+      exp_tbl_2f: "Qualité design",
+      exp_tbl_2e: "Professionnelle",
+      exp_tbl_2d: "Basée sur template",
+      exp_tbl_3f: "Configuration technique",
+      exp_tbl_3e: "Fait pour vous",
+      exp_tbl_3d: "À votre charge",
+      exp_tbl_4f: "Niveau de stress",
+      exp_tbl_4e: "Faible",
+      exp_tbl_4d: "Élevé",
+      exp_tbl_5f: "Pensé pour convertir",
+      exp_tbl_5e: "Oui",
+      exp_tbl_5d: "Souvent non",
+
+      exp_test_title: "Ce que veulent les entrepreneurs",
+      exp_test_sub: "Le but est simple : être en ligne vite et avoir l’air professionnel.",
+      exp_test_1q: "« Je veux juste un site propre qui fait paraître mon entreprise sérieuse. »",
+      exp_test_1a: "— Entrepreneur local typique",
+      exp_test_2q: "« Je n’ai pas le temps d’apprendre un builder. J’ai besoin que ce soit fait vite. »",
+      exp_test_2a: "— Prestataire de service",
+      exp_test_3q: "« Si les clients me cherchent en ligne, il faut quelque chose de solide et rassurant. »",
+      exp_test_3a: "— Propriétaire de PME",
+
+      exp_faq_title: "Questions fréquentes",
+      exp_faq_1q: "72 heures, c’est vraiment suffisant pour un bon site?",
+      exp_faq_1a: "Oui — tant que le projet reste ciblé, que le contenu est prêt et que l’objectif est un site d’entreprise propre, pas une énorme plateforme sur mesure.",
+      exp_faq_2q: "De quoi avez-vous besoin pour commencer?",
+      exp_faq_2a: "Le nom de votre entreprise, votre logo si vous en avez un, vos textes, vos services, vos photos et vos coordonnées.",
+      exp_faq_3q: "Puis-je ajouter des fonctions plus tard?",
+      exp_faq_3a: "Absolument. Ce forfait express est une excellente base. On peut ajouter plus de pages, du SEO ou de l’automatisation plus tard.",
+
+      exp_final_title: "Prêt à lancer votre site rapidement?",
+      exp_final_sub: "Soyez en ligne vite avec un site professionnel conçu pour de vrais résultats.",
+      exp_final_btn: "Commencer"
+    }
+  };
+
+  function setLanguage(lang) {
+    localStorage.setItem("lang", lang);
+    document.documentElement.lang = lang;
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      if (i18n[lang] && i18n[lang][key]) el.textContent = i18n[lang][key];
+    });
+
+    document.getElementById("btnEN").classList.toggle("btn-dark", lang === "en");
+    document.getElementById("btnEN").classList.toggle("btn-outline-dark", lang !== "en");
+    document.getElementById("btnFR").classList.toggle("btn-dark", lang === "fr");
+    document.getElementById("btnFR").classList.toggle("btn-outline-dark", lang !== "fr");
+  }
+
+  document.getElementById("btnEN").addEventListener("click", () => setLanguage("en"));
+  document.getElementById("btnFR").addEventListener("click", () => setLanguage("fr"));
+
+  setLanguage(localStorage.getItem("lang") || "en");
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
