@@ -1,455 +1,285 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GABAN Solutions Numériques</title>
-  <meta name="description" content="Websites, automation, and management systems for local businesses in Montréal." />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="./MyCSS.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <title>RCR Barber Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="./MyCSS.css">
 
-  <style>
-    .hero { padding: 5rem 0; }
-    .icon-badge { width: 44px; height: 44px; display:flex; align-items:center; justify-content:center; border-radius: 12px; }
-  </style>
 </head>
 <body>
 
-<!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+
+<header class="py-3 border-bottom border-warning">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="./index.html">
-      GABAN <span class="fw-normal">Solutions Numériques</span>
-    </a>
-
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navMain">
-      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link active" href="./index.html" data-i18n="nav_home">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="./services.html" data-i18n="nav_services">Services</a></li>
-        <li class="nav-item"><a class="nav-link" href="./express.html" data-i18n="nav_express">Express</a></li>
-        <li class="nav-item"><a class="nav-link" href="./portfolio.html" data-i18n="nav_work">Work</a></li>
-        <li class="nav-item"><a class="nav-link" href="./about.html" data-i18n="nav_about">About</a></li>
-        <li class="nav-item"><a class="nav-link" href="./contact.html" data-i18n="nav_contact">Contact</a></li>
-      </ul>
-
-      <a class="btn btn-dark ms-lg-3" href="./contact.html" data-i18n="nav_cta">Free Consultation</a>
-
-      <div class="ms-lg-3 mt-3 mt-lg-0 d-flex align-items-center gap-2">
-        <button class="btn btn-outline-dark btn-sm" id="btnEN" type="button">EN</button>
-        <button class="btn btn-outline-dark btn-sm" id="btnFR" type="button">FR</button>
+    <div class="row align-items-center gy-2">
+      <div class="col-12 col-md-3 text-center text-md-start">
+        <a href="index.html" class="d-inline-block">
+          <img src="./Images/Logo_RCR_2026_SinFondo.png" class="img-fluid" style="max-width:150px;" alt="RCR Logo">
+        </a>
       </div>
-    </div>
-  </div>
-</nav>
 
-<!-- HERO -->
-<header class="hero bg-dark text-white">
-  <div class="container py-5">
-    <div class="row align-items-center g-5">
-      <div class="col-lg-7">
-        <h1 class="display-5 fw-bold mb-3" data-i18n="home_h1">
-          Smart Digital Solutions for Small Businesses
-        </h1>
-
-        <p class="lead mb-4 text-white-50" data-i18n="home_lead">
-          Websites, automation and custom software to help your business grow.
+      <div class="col-12 col-md-6 text-center">
+        <h1 class="m-0" style="font-family:'Cinzel'; color:#D4BA67;">RCR Barber Shop</h1>
+        <p class="m-0 text-white" style="font-family:'Cinzel';">
+          Donde el estilo se combina con la asesoría y el mejor trato.
         </p>
-
-        <div class="d-flex gap-2 flex-wrap">
-          <a class="btn btn-warning btn-lg" href="./contact.html" data-i18n="home_cta1">Get a Free Consultation</a>
-          <a class="btn btn-outline-light btn-lg" href="./services.html" data-i18n="home_cta2">View Our Services</a>
-        </div>
-
-        <div class="mt-4 small text-white-50" data-i18n="home_trust">
-          Montréal-based • Fast delivery • Clear communication
-        </div>
       </div>
 
-      <div class="col-lg-5">
-        <div class="card border-0 shadow-sm">
-          <div class="card-body p-4">
-            <h2 class="h5 fw-bold mb-3" data-i18n="home_expect_title">What you can expect</h2>
-            <ul class="list-unstyled mb-0">
-              <li class="d-flex gap-3 mb-3">
-                <div class="bg-dark text-white rounded-3 px-3 py-2">✓</div>
-                <div>
-                  <div class="fw-semibold" data-i18n="home_expect_1t">Simple process</div>
-                  <div class="text-muted small" data-i18n="home_expect_1d">Consultation → Build → Launch & support.</div>
-                </div>
-              </li>
-              <li class="d-flex gap-3 mb-3">
-                <div class="bg-dark text-white rounded-3 px-3 py-2">✓</div>
-                <div>
-                  <div class="fw-semibold" data-i18n="home_expect_2t">Practical solutions</div>
-                  <div class="text-muted small" data-i18n="home_expect_2d">We focus on what improves your business day-to-day.</div>
-                </div>
-              </li>
-              <li class="d-flex gap-3">
-                <div class="bg-dark text-white rounded-3 px-3 py-2">✓</div>
-                <div>
-                  <div class="fw-semibold" data-i18n="home_expect_3t">Local support</div>
-                  <div class="text-muted small" data-i18n="home_expect_3d">Montréal, QC — reachable by phone or email.</div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
+<div class="col-12 col-md-3 d-none d-md-block"></div>
     </div>
   </div>
 </header>
 
-
-
-<!-- SERVICES -->
-<section class="py-5 bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-warning">
   <div class="container">
+    <a class="navbar-brand d-lg-none" href="index.html" style="font-family:'Cinzel'; color:#D4BA67;">RCR</a>
 
-    <div class="text-center mb-5">
-      <h2 class="fw-bold">Our Services</h2>
-      <p class="text-muted">
-        Practical digital solutions designed to help small businesses grow.
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#rcrNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="rcrNav">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+        <li class="nav-item"><a class="nav-link" href="Services.html">Servicios</a></li>
+        <li class="nav-item"><a class="nav-link" href="Contact.html">Ubicación y horarios</a></li>
+      </ul>
+
+
+<button
+id="Anywhere_button_iframe"
+class="anywhere-book-now-button btn btn-warning fw-semibold"
+data-booking-url="https://rcr-barber-shop.setmore.com"
+data-new-tab="false">
+Haz tu cita
+</button>
+    </div>
+  </div>
+</nav>
+
+<main class="container my-4">
+  <div class="card bg-dark text-white border-warning">
+    <div class="card-body p-4" style="font-family:'Montserrat';">
+      <p class="mb-0">
+        Redefine tu imagen en RCR Barbería. Más que un servicio, un ritual de cuidado personal. Nuestros barberos combinan la asesoría de imagen con la excelencia
+        técnica para potenciar tu mejor versión. Calidad, precisión y atención personalizada en cada detalle.
       </p>
     </div>
+  </div>
 
-    <div class="row g-4">
 
-      <!-- Web Development -->
-      <div class="col-md-6 col-lg-3">
-        <div class="card h-100 border-0 shadow-sm text-center">
-          <div class="card-body">
-            <div class="display-6 mb-3">💻</div>
-            <h5 class="fw-bold">Web Development</h5>
-            <p class="text-muted small">
-              Modern websites optimized for performance, SEO and user experience.
-            </p>
-          </div>
-        </div>
-      </div>
+  <div class="my-4">
+<section class="gallery">
+  <h2 class="gallery-title">Atención profesional para tus necesidades de imagen</h2>
 
-      <!-- Automation -->
-      <div class="col-md-6 col-lg-3">
-        <div class="card h-100 border-0 shadow-sm text-center">
-          <div class="card-body">
-            <div class="display-6 mb-3">⚙️</div>
-            <h5 class="fw-bold">Business Automation</h5>
-            <p class="text-muted small">
-              Automate repetitive tasks and simplify your daily operations.
-            </p>
-          </div>
-        </div>
-      </div>
+  <div class="carousel" id="carousel">
+    <button class="car-btn prev" aria-label="Anterior">
 
-      <!-- Custom Software -->
-      <div class="col-md-6 col-lg-3">
-        <div class="card h-100 border-0 shadow-sm text-center">
-          <div class="card-body">
-            <div class="display-6 mb-3">📊</div>
-            <h5 class="fw-bold">Custom Software</h5>
-            <p class="text-muted small">
-              Tailor-made tools designed specifically for your business needs.
-            </p>
-          </div>
-        </div>
-      </div>
+    </button>
 
-      <!-- Digital Presence -->
-      <div class="col-md-6 col-lg-3">
-        <div class="card h-100 border-0 shadow-sm text-center">
-          <div class="card-body">
-            <div class="display-6 mb-3">🌐</div>
-            <h5 class="fw-bold">Digital Presence</h5>
-            <p class="text-muted small">
-              Google setup, SEO basics and online visibility for local businesses.
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div class="viewer" id="viewer">
+      <img src="./Images/PHOTO-2026-03-08-14-03-09 1.jpg" alt="Estilo 1">
+      <img src="./Images/PHOTO-2026-03-08-14-03-09 2.jpg" alt="Estilo 2">
+      <img src="./Images/PHOTO-2026-03-08-14-03-09 3.jpg" alt="Estilo 3">
+      <img src="./Images/PHOTO-2026-03-08-14-03-09 4.jpg" alt="Estilo 4">
+      <img src="./Images/PHOTO-2026-03-08-14-03-09.jpg" alt="Estilo 5">
+      <img src="./Images/PHOTO-2026-03-08-14-03-10.jpg" alt="Estilo 6">
+      <img src="./Borradores/Balayage.JPG" alt="Estilo 7">
+      <img src="./Borradores/Nanoplastia.JPG" alt="Estilo 8">
     </div>
+    
 
+    <button class="car-btn next" aria-label="Siguiente">
+
+    </button>
+
+    <div class="counter" id="counter">1 / 8</div>
+  </div>
+
+  <div class="thumbs" id="thumbs">
+    <img src="./Images/PHOTO-2026-03-08-14-03-09 1.jpg" data-i="0" alt="thumb 1">
+    <img src="./Images/PHOTO-2026-03-08-14-03-09 2.jpg" data-i="1" alt="thumb 2">
+    <img src="./Images/PHOTO-2026-03-08-14-03-09 3.jpg"  data-i="2" alt="thumb 3">
+    <img src="./Images/PHOTO-2026-03-08-14-03-09 4.jpg" data-i="3" alt="thumb 4">
+    <img src="./Images/PHOTO-2026-03-08-14-03-09.jpg" data-i="4" alt="thumb 5">
+    <img src="./Images/PHOTO-2026-03-08-14-03-10.jpg" data-i="5" alt="thumb 6">
+    <img src="./Borradores/Balayage.JPG" data-i="6" alt="thumb 7">
+    <img src="./Borradores/Nanoplastia.JPG" data-i="7" alt="thumb 8">
   </div>
 </section>
 
-<!-- PROCESS -->
-<section class="section">
-  <div class="container">
-    <div class="text-center mb-4">
-      <h2 class="fw-bold" data-i18n="proc_title">Our Process</h2>
-      <p class="text-muted mb-0" data-i18n="proc_sub">Simple, clear, and fast—so you know exactly what’s happening.</p>
+</div>
+
+
+  <div class="card bg-dark text-white border-warning mt-4 services-ladies-card">
+  <div class="card-body text-center p-4 p-md-5">
+
+    <div class="mb-3">
+      <i class="bi bi-stars ladies-icon"></i>
     </div>
 
-    <div class="row g-3">
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="fw-semibold" data-i18n="proc_1t">1) Consultation</div>
-          <div class="text-muted small" data-i18n="proc_1d">We understand your business and your goals.</div>
-        </div></div>
-      </div>
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="fw-semibold" data-i18n="proc_2t">2) Planning</div>
-          <div class="text-muted small" data-i18n="proc_2d">We propose the simplest solution that works.</div>
-        </div></div>
-      </div>
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="fw-semibold" data-i18n="proc_3t">3) Build</div>
-          <div class="text-muted small" data-i18n="proc_3d">We develop, test, and keep you updated.</div>
-        </div></div>
-      </div>
-      <div class="col-md-3">
-        <div class="card h-100"><div class="card-body">
-          <div class="fw-semibold" data-i18n="proc_4t">4) Launch</div>
-          <div class="text-muted small" data-i18n="proc_4d">We publish, connect your domain, and support you.</div>
-        </div></div>
-      </div>
+    <h3 class="mb-2" style="font-family:'Cinzel'; color:#D4BA67;">
+      También contamos con servicios para dama
+    </h3>
+
+    <p class="mb-3" style="font-family:'Montserrat';">
+      Aunque RCR es un <b>barbershop</b> especializado en caballeros,
+      también ofrecemos atención para dama <b>únicamente con previa cita</b>.
+    </p>
+
+    <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+      <span class="badge rounded-pill text-bg-dark border border-warning px-3 py-2">Balayage</span>
+      <span class="badge rounded-pill text-bg-dark border border-warning px-3 py-2">Nanoplastia</span>
+      <span class="badge rounded-pill text-bg-dark border border-warning px-3 py-2">Trenzas</span>
     </div>
+
+    <p class="small mb-4 ladies-note">
+      Consulta disponibilidad y agenda tu cita con anticipación.
+    </p>
+
+    <button
+      class="anywhere-book-now-button btn btn-warning btn-lg fw-semibold"
+      data-booking-url="https://rcr-barber-shop.setmore.com"
+      data-new-tab="false">
+      Agendar servicio
+    </button>
+
   </div>
+</div>
+
+<section class="container my-5">
+
+<div class="card bg-dark text-white border-warning">
+<div class="card-body text-center p-4">
+
+<h2 class="mb-2" style="font-family:'Cinzel'; color:#D4BA67;">
+Queremos conocer tu opinión
+</h2>
+
+<p class="mb-4" style="font-family:'Montserrat';">
+Tu experiencia nos ayuda a mejorar y seguir ofreciendo el mejor servicio.
+</p>
+
+
+<div class="row g-4 justify-content-center">
+
+<!-- ENCUESTA -->
+<div class="col-md-5">
+<a href="https://forms.gle/G6pdmRBXSp6LeKgr6" target="_blank" class="text-decoration-none">
+
+<div class="card h-100 bg-black text-white border-warning review-card">
+
+<div class="card-body text-center p-4">
+
+<img src="./Images/Logo_RCR_2026_SinFondo.png" width="80" class="mb-3">
+
+<h4 style="font-family:'Cinzel'; color:#D4BA67;">
+Responder encuesta
+</h4>
+
+<p class="small">
+Queremos conocer tu opinión sobre tu experiencia en RCR.
+</p>
+
+</div>
+</div>
+
+</a>
+</div>
+
+
+<!-- GOOGLE REVIEW -->
+<div class="col-md-5">
+
+<a href="https://www.google.com/search?hl=en-CA&gl=ca&q=RCR+Barber%C3%ADa+Sal%C3%B3n,+Atenas,+Jerez+101+B,+Los+Sauces,+76114+Santiago+de+Quer%C3%A9taro,+Qro.,+Mexico&ludocid=10896036416418766935&lsig=AB86z5VZacI5tAJtuzdIunoeFj1o&hl=en&gl=CA#" target="_blank" class="text-decoration-none">
+
+<div class="card h-100 bg-black text-white border-warning review-card">
+
+<div class="card-body text-center p-4">
+
+<img src="./Images/finalgooglemaps.png" width="80" class="mb-3">
+
+<h4 style="font-family:'Cinzel'; color:#D4BA67;">
+Escribir reseña
+</h4>
+
+<p class="small">
+Comparte tu experiencia en Google y ayuda a otros clientes.
+</p>
+
+</div>
+</div>
+
+</a>
+</div>
+
+
+</div>
+</div>
+</div>
+
 </section>
 
-<!-- FEATURED WORK -->
-<section class="section">
-  <div class="container">
-    <div class="row align-items-center g-4">
-      <div class="col-lg-6">
-        <h2 class="fw-bold" data-i18n="home_work_title">Featured project</h2>
-        <p class="text-muted" data-i18n="home_work_text">
-          A real example of what we can build for a local business: website + practical tools that drive reviews and bookings.
-        </p>
+</main>
 
-        <div class="card">
-          <div class="card-body">
-            <div class="fw-semibold">RCR Barbería</div>
-            <div class="text-muted small mb-3" data-i18n="home_work_desc">
-              Website + appointment-ready structure + Google reviews integration.
-            </div>
-            <a class="btn btn-dark" href="./portfolio.html" data-i18n="home_work_btn">See more work</a>
-          </div>
-        </div>
-      </div>
 
-      <div class="col-lg-6">
-        <div class="bg-light border rounded-4 p-4 text-muted text-center">
-          <span data-i18n="home_img_placeholder">Add screenshots here later (portfolio images)</span>
-          <div class="small mt-2">assets/img/...</div>
-        </div>
-      </div>
-    </div>
-  </div>
+<section class="footer" align="center" style="font-family: 'Cinzel'; color:white">
+  
+<a href="https://www.instagram.com/rcr_barbershop/" target="_blank"><img src="./Images/Logo instagram.png" width="50" height="50"></a>
+<a href="https://www.facebook.com/rcr.carlos.2025/" target="_blank"><img src="./Images/Logo Facebook.png" width="50" height="50"></a><br>
+<p>© 2026 Todos los derechos reservados</p>
 </section>
-
-<!-- CTA -->
-<section class="section bg-dark text-white">
-  <div class="container">
-    <div class="row align-items-center g-3">
-      <div class="col-lg-8">
-        <h2 class="fw-bold mb-2" data-i18n="home_bottom_title">Let’s build something that works for your business.</h2>
-        <p class="mb-0 text-white-50" data-i18n="home_bottom_text">Tell us what you need. We’ll recommend the simplest solution that gets results.</p>
-      </div>
-      <div class="col-lg-4 text-lg-end">
-        <a class="btn btn-light btn-lg" href="./contact.html" data-i18n="home_bottom_btn">Contact Us</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<footer class="py-4 border-top">
-  <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
-    <div class="small text-muted">© <span id="year"></span> GABAN Solutions Numériques — Montréal, QC</div>
-    <div class="small">
-      <a class="text-decoration-none me-3" href="./services.html" data-i18n="nav_services">Services</a>
-      <a class="text-decoration-none me-3" href="./portfolio.html" data-i18n="nav_work">Work</a>
-      <a class="text-decoration-none" href="./contact.html" data-i18n="nav_contact">Contact</a>
-    </div>
-  </div>
-</footer>
-
-<script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 
 <script>
-  const i18n = {
-    en: {
-      nav_home: "Home",
-      nav_services: "Services",
-      nav_work: "Work",
-      nav_about: "About",
-      nav_contact: "Contact",
-      nav_cta: "Free Consultation",
+  const viewer = document.getElementById('viewer');
+  const thumbs = document.getElementById('thumbs');
+  const counter = document.getElementById('counter');
+  const slides = Array.from(viewer.querySelectorAll('img'));
+  const total = slides.length;
 
-      home_h1: "Digital solutions that make local businesses run smoother.",
-      home_lead: "We build professional websites, automation, and management systems so you can save time, reduce manual work, and look more professional online.",
-      home_cta1: "Get a Free Consultation",
-      home_cta2: "See Services",
-      home_trust: "Montréal-based • Fast delivery • Clear communication",
+  let current = 0;
 
-      home_expect_title: "What you can expect",
-      home_expect_1t: "Simple process",
-      home_expect_1d: "Consultation → Build → Launch & support.",
-      home_expect_2t: "Practical solutions",
-      home_expect_2d: "We focus on what improves your business day-to-day.",
-      home_expect_3t: "Local support",
-      home_expect_3d: "Montréal, QC — reachable by phone or email.",
+  function goTo(i){
+    current = Math.max(0, Math.min(total-1, i));
+    viewer.scrollTo({ left: viewer.clientWidth * current, behavior: 'smooth' });
+    counter.textContent = (current+1) + " / " + total;
 
-      home_prob_title: "Running a business is already hard. Technology shouldn’t be.",
-      home_prob_text: "Many local businesses lose customers or waste time because their online presence and systems are outdated. We help you fix that with modern, easy-to-use tools.",
-      home_prob_1t: "Outdated website",
-      home_prob_1d: "Slow, not mobile-friendly, not converting visitors into customers.",
-      home_prob_2t: "Too much manual work",
-      home_prob_2d: "Calls, messages, spreadsheets—everything takes longer than it should.",
-      home_prob_3t: "No systems",
-      home_prob_3d: "Appointments, inventory, or tracking are not organized in one place.",
-
-      home_services_title: "Services",
-      home_services_sub: "Pick what you need now. Add more later.",
-      home_services_btn: "View all services",
-
-      svc1_title: "Professional Websites",
-      svc1_desc: "Modern design, fast loading, mobile-first, built to convert visitors into customers.",
-      svc1_b1: "Landing pages & multi-page sites",
-      svc1_b2: "SEO basics included",
-      svc1_b3: "Google Maps & reviews integration",
-
-      svc2_title: "Business Automation",
-      svc2_desc: "Save time with systems that reduce repetitive work.",
-      svc2_b1: "Appointment booking",
-      svc2_b2: "Forms & lead capture",
-      svc2_b3: "Email confirmations / workflows",
-
-      svc3_title: "Management Systems",
-      svc3_desc: "Custom tools to manage operations in one place.",
-      svc3_b1: "Dashboards & reporting",
-      svc3_b2: "Inventory / tracking",
-      svc3_b3: "Simple admin panels",
-
-      proc_title: "Our Process",
-      proc_sub: "Simple, clear, and fast—so you know exactly what's happening.",
-      proc_1t: "1) Consultation",
-      proc_1d: "We understand your business and your goals.",
-      proc_2t: "2) Planning",
-      proc_2d: "We propose the simplest solution that works.",
-      proc_3t: "3) Build",
-      proc_3d: "We develop, test, and keep you updated.",
-      proc_4t: "4) Launch",
-      proc_4d: "We publish, connect your domain, and support you.",
-
-
-      home_work_title: "Featured project",
-      home_work_text: "A real example of what we can build for a local business: website + practical tools that drive reviews and bookings.",
-      home_work_desc: "Website + appointment-ready structure + Google reviews integration.",
-      home_work_btn: "See more work",
-
-      home_img_placeholder: "Add screenshots here later (portfolio images)",
-
-      home_bottom_title: "Lets build something that works for your business.",
-      home_bottom_text: "Tell us what you need. We'll recommend the simplest solution that gets results.",
-      home_bottom_btn: "Contact Us"
-    },
-
-    fr: {
-      nav_home: "Accueil",
-      nav_services: "Services",
-      nav_work: "Réalisations",
-      nav_about: "À propos",
-      nav_contact: "Contact",
-      nav_cta: "Consultation gratuite",
-
-      home_h1: "Des solutions numériques qui simplifient la gestion des entreprises locales.",
-      home_lead: "Nous créons des sites web professionnels, de l'automatisation et des systèmes de gestion pour vous faire gagner du temps, réduire le travail manuel et renforcer votre image en ligne.",
-      home_cta1: "Consultation gratuite",
-      home_cta2: "Voir les services",
-      home_trust: "Basé à Montréal • Livraison rapide • Communication claire",
-
-      home_expect_title: "À quoi vous attendre",
-      home_expect_1t: "Processus simple",
-      home_expect_1d: "Consultation → Développement → Mise en ligne & support.",
-      home_expect_2t: "Solutions pratiques",
-      home_expect_2d: "On se concentre sur ce qui améliore votre quotidien.",
-      home_expect_3t: "Support local",
-      home_expect_3d: "Montréal, QC — joignable par téléphone ou courriel.",
-
-      home_prob_title: "Gérer une entreprise est déjà difficile. La technologie ne devrait pas l'être.",
-      home_prob_text: "Beaucoup d'entreprises perdent des clients ou du temps à cause d'un site dépassé ou de systèmes mal organisés. Nous vous aidons à corriger ça avec des outils modernes et simples.",
-      home_prob_1t: "Site web dépassé",
-      home_prob_1d: "Lent, pas adapté mobile, et ne convertit pas les visiteurs en clients.",
-      home_prob_2t: "Trop de travail manuel",
-      home_prob_2d: "Appels, messages, tableaux — tout prend trop de temps.",
-      home_prob_3t: "Manque de systèmes",
-      home_prob_3d: "Rendez-vous, inventaire, suivi — rien n'est centralisé.",
-
-      home_services_title: "Services",
-      home_services_sub: "Choisissez ce dont vous avez besoin maintenant. Ajoutez le reste plus tard.",
-      home_services_btn: "Voir tous les services",
-
-      svc1_title: "Sites web professionnels",
-      svc1_desc: "Design moderne, rapide, pensé mobile, conçu pour convertir les visiteurs en clients.",
-      svc1_b1: "Pages d'accueil & sites multi-pages",
-      svc1_b2: "Bases SEO incluses",
-      svc1_b3: "Intégration Google Maps & avis",
-
-      svc2_title: "Automatisation",
-      svc2_desc: "Gagnez du temps grâce à des systèmes qui réduisent le travail répétitif.",
-      svc2_b1: "Systèmes de rendez-vous",
-      svc2_b2: "Formulaires & capture de prospects",
-      svc2_b3: "Confirmations / flux par courriel",
-
-      svc3_title: "Systèmes de gestion",
-      svc3_desc: "Outils sur mesure pour gérer vos opérations au même endroit.",
-      svc3_b1: "Tableaux de bord & rapports",
-      svc3_b2: "Inventaire / suivi",
-      svc3_b3: "Panneaux d'administration simples",
-
-      proc_title: "Notre processus",
-      proc_sub: "Simple, clair et rapide — pour que vous sachiez exactement ce qui se passe.",
-      proc_1t: "1) Consultation",
-      proc_1d: "On comprend votre entreprise et vos objectifs.",
-      proc_2t: "2) Planification",
-      proc_2d: "On propose la solution la plus simple et efficace.",
-      proc_3t: "3) Développement",
-      proc_3d: "On construit, on teste et on vous tient au courant.",
-      proc_4t: "4) Mise en ligne",
-      proc_4d: "On publie, on connecte votre domaine et on vous supporte.",
-
-      home_work_title: "Projet en vedette",
-      home_work_text: "Un exemple réel de ce qu'on peut créer pour une entreprise locale : un site + des outils pratiques qui génèrent des avis et des réservations.",
-      home_work_desc: "Site + structure prête pour rendez-vous + intégration des avis Google.",
-      home_work_btn: "Voir plus de projets",
-
-      home_img_placeholder: "Ajoutez des captures d'écran ici plus tard (portfolio)",
-
-      home_bottom_title: "Construisons quelque chose d'utile pour votre entreprise.",
-      home_bottom_text: "Expliquez-nous votre besoin. Nous proposerons la solution la plus simple et efficace.",
-      home_bottom_btn: "Nous contacter"
-    }
-  };
-
-  function setLanguage(lang) {
-    localStorage.setItem("lang", lang);
-    document.documentElement.lang = lang;
-
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-      const key = el.getAttribute("data-i18n");
-      if (i18n[lang] && i18n[lang][key]) el.textContent = i18n[lang][key];
-    });
-
-    document.getElementById("btnEN").classList.toggle("btn-dark", lang === "en");
-    document.getElementById("btnEN").classList.toggle("btn-outline-dark", lang !== "en");
-    document.getElementById("btnFR").classList.toggle("btn-dark", lang === "fr");
-    document.getElementById("btnFR").classList.toggle("btn-outline-dark", lang !== "fr");
+    thumbs.querySelectorAll('img').forEach(t => t.classList.remove('active'));
+    const activeThumb = thumbs.querySelector(`img[data-i="${current}"]`);
+    if(activeThumb) activeThumb.classList.add('active');
   }
 
-  document.getElementById("btnEN").addEventListener("click", () => setLanguage("en"));
-  document.getElementById("btnFR").addEventListener("click", () => setLanguage("fr"));
+  document.querySelector('.car-btn.prev').addEventListener('click', () => goTo(current-1));
+  document.querySelector('.car-btn.next').addEventListener('click', () => goTo(current+1));
 
-  setLanguage(localStorage.getItem("lang") || "en");
+  thumbs.addEventListener('click', (e) => {
+    if(e.target.tagName === 'IMG'){
+      goTo(parseInt(e.target.dataset.i, 10));
+    }
+  });
+
+  // Detectar slide actual al swippear
+  viewer.addEventListener('scroll', () => {
+    const i = Math.round(viewer.scrollLeft / viewer.clientWidth);
+    if(i !== current){
+      current = i;
+      counter.textContent = (current+1) + " / " + total;
+      thumbs.querySelectorAll('img').forEach(t => t.classList.remove('active'));
+      const activeThumb = thumbs.querySelector(`img[data-i="${current}"]`);
+      if(activeThumb) activeThumb.classList.add('active');
+    }
+  });
+
+  // Init
+  goTo(0);
 </script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script id="anywhere_book_now_script" src="https://assets.setmore.com/integration/book-now/live/v1/anywhere-book-now.js"></script>
 </body>
 </html>
