@@ -60,11 +60,11 @@
       </ul>
 
 <button
-id="Anywhere_button_iframe"
-class="anywhere-book-now-button btn btn-warning fw-semibold"
-data-booking-url="https://rcr-barber-shop.setmore.com"
-data-new-tab="false">
-Haz tu cita
+  id="Anywhere_button_iframe"
+  class="anywhere-book-now-button btn btn-warning fw-semibold d-none d-lg-inline-flex"
+  data-booking-url="https://rcr-barber-shop.setmore.com"
+  data-new-tab="false">
+  Haz tu cita
 </button>
     </div>
   </div>
@@ -112,6 +112,14 @@ Haz tu cita
 <p>© 2026 Todos los derechos reservados</p>
 </section>
 
+<div class="mobile-book-bar d-lg-none">
+  <button
+    class="anywhere-book-now-button btn btn-warning mobile-book-btn fw-semibold"
+    data-booking-url="https://rcr-barber-shop.setmore.com"
+    data-new-tab="false">
+    <i class="bi bi-calendar-check me-2"></i>Agendar cita
+  </button>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script id="anywhere_book_now_script" src="https://assets.setmore.com/integration/book-now/live/v1/anywhere-book-now.js"></script>
 </body>
