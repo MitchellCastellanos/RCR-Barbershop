@@ -278,7 +278,10 @@ async function startApp() {
   });
 
   applyRoleUI();
-  if (myProfile.role === "admin") initUsers();
+  if (myProfile.role === "admin") {
+    initUsers();
+    fetchCommissionSettings().then((c) => { commissionSettings = c; renderCommissionSettings(); });
+  }
 
   await loadData();
 }
@@ -1597,8 +1600,6 @@ async function loadCorte() {
 }
 
 function renderCommissionSettings() {
-  const box = $("#commissionSettings");
-  box.hidden = !isAdminRole();
   if (!isAdminRole()) return;
   $("#commissionPercent").value = commissionSettings.servicePercent;
   $("#commissionProduct").value = commissionSettings.productAmount;
@@ -1644,21 +1645,31 @@ function renderCorte() {
     });
   });
 
-  let commissionTotal = 0;
+  let commissionTotal = 0, serviceBase = 0, productUnits = 0;
   const byCashier = new Map();
   valid.forEach((r) => {
     const c = saleCommission(r, commissionSettings);
     commissionTotal += c;
     byCashier.set(r.cashierName || "—", (byCashier.get(r.cashierName || "—") || 0) + c);
+    (r.items || []).forEach((i) => {
+      if (i.kind === "product") productUnits += Number(i.qty) || 0;
+      else serviceBase += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
+    });
   });
-  commissionTotal = Math.round(commissionTotal * 100) / 100;
-  const breakdownEl = $("#corteCommissionBreakdown");
-  const showBreakdown = admin && corteCashierFilter === "all" && byCashier.size > 0;
-  breakdownEl.hidden = !showBreakdown;
-  if (showBreakdown) {
-    breakdownEl.textContent = "Comisión por cajero: " +
-      [...byCashier].map(([n, v]) => `${n} ${formatPrice(Math.round(v * 100) / 100)}`).join(" · ");
-  }
+  const r2 = (n) => Math.round(n * 100) / 100;
+  commissionTotal = r2(commissionTotal);
+  const { servicePercent, productAmount } = commissionSettings;
+  const summaryEl = $("#corteCommissionSummary");
+  summaryEl.hidden = valid.length === 0;
+  summaryEl.innerHTML = `
+    <div class="pos-commission-title">Resumen de comisión</div>
+    <div class="pos-commission-line"><span>Servicios: ${formatPrice(r2(serviceBase))} × ${servicePercent}%</span><strong>${formatPrice(r2(serviceBase * servicePercent / 100))}</strong></div>
+    <div class="pos-commission-line"><span>Productos: ${productUnits} × ${formatPrice(productAmount)}</span><strong>${formatPrice(r2(productUnits * productAmount))}</strong></div>
+    <div class="pos-commission-line pos-commission-total"><span>Total comisión</span><strong>${formatPrice(commissionTotal)}</strong></div>
+    ${admin && corteCashierFilter === "all" && byCashier.size > 1
+      ? `<div class="pos-commission-by">Por cajero: ${[...byCashier].map(([n, v]) => `${escape(n)} ${formatPrice(r2(v))}`).join(" · ")}</div>`
+      : ""}
+  `;
 
   $("#corteTotals").innerHTML = `
     <div class="pos-report-tile"><div class="pos-report-tile-label">Efectivo</div><div class="pos-report-tile-value">${formatPrice(efectivo)}</div></div>
