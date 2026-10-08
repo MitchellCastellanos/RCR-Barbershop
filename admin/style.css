@@ -1028,7 +1028,7 @@ body:not(.is-admin) .nav-group-label { display: none; }
 .pos-report-tile-value { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold-light); margin-top: 4px; }
 .tx-row {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto auto;
   gap: 10px;
   align-items: center;
   padding: 10px 12px;
@@ -1039,7 +1039,7 @@ body:not(.is-admin) .nav-group-label { display: none; }
   font-size: 0.82rem;
 }
 .tx-row.is-voided { opacity: 0.5; text-decoration: line-through; }
-.tx-row.has-cashier { grid-template-columns: auto 1fr auto auto auto auto; }
+.tx-row.has-cashier { grid-template-columns: auto 1fr auto auto auto auto auto; }
 .tx-row-time { color: var(--text-faint); font-size: 0.74rem; }
 .tx-row-items { color: var(--text-muted); }
 .tx-row-cashier {
@@ -1149,6 +1149,7 @@ body:not(.is-admin) .nav-group-label { display: none; }
   .tx-row-items { grid-area: items; }
   .tx-row-cashier { grid-area: cashier; }
   .tx-row-total { grid-area: total; }
+  .tx-row [data-action="print"] { justify-self: start; }
   .user-row { flex-direction: column; align-items: flex-start; }
   .modal { padding: 10px; }
   .modal-card { max-height: calc(100vh - 20px); padding: 16px; }
