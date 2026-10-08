@@ -946,7 +946,7 @@ function renderStockHistory(rows) {
         ${r.type === "salida" ? "−" : "+"}${r.quantity}
       </span>
       <span>${escape(r.reason || "—")}</span>
-      <span>${new Date(r.createdAt).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}</span>
+      <span>${new Date(r.createdAt).toLocaleDateString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short" })}</span>
     </div>
   `).join("");
 }
@@ -1472,7 +1472,7 @@ function onPrintReceipt() {
   $("#printReceipt").innerHTML = `
     <div style="width:72mm;font-family:monospace;padding:4mm;">
       <div style="text-align:center;font-weight:700;font-size:4mm;margin-bottom:2mm;">RCR Barber Shop</div>
-      <div style="text-align:center;font-size:2.6mm;margin-bottom:3mm;">${new Date(lastSale.createdAt).toLocaleString("es-MX")}</div>
+      <div style="text-align:center;font-size:2.6mm;margin-bottom:3mm;">${new Date(lastSale.createdAt).toLocaleString("es-MX", { timeZone: SHOP_TZ })}</div>
       <hr />
       ${rows}
       <hr />
@@ -1519,8 +1519,39 @@ function onScanError(err) {
 }
 
 // ---------- Corte de caja ----------
+// Todo el "día" de la caja se calcula en hora de México, no en UTC ni en la
+// zona del navegador: una venta a las 6 pm+ en CDMX ya es el día siguiente en UTC.
+const SHOP_TZ = "America/Mexico_City";
+const tzFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: SHOP_TZ, hourCycle: "h23",
+  year: "numeric", month: "numeric", day: "numeric",
+  hour: "numeric", minute: "numeric", second: "numeric",
+});
+
+// Instante UTC (ms) de la medianoche de y-m-d en hora de México (m 1-12, d puede desbordar)
+function shopMidnightMs(y, m, d) {
+  const wall = Date.UTC(y, m - 1, d);
+  let guess = wall;
+  for (let i = 0; i < 2; i++) {
+    const p = {};
+    tzFormatter.formatToParts(new Date(guess)).forEach((x) => { if (x.type !== "literal") p[x.type] = Number(x.value); });
+    guess = wall - (Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - guess);
+  }
+  return guess;
+}
+
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: SHOP_TZ }).format(new Date());
+}
+
+// "YYYY-MM-DD" -> { startIso, endIso } cubriendo ese día completo en hora de México
+function shopDayRange(fromYmd, toYmd) {
+  const [fy, fm, fd] = fromYmd.split("-").map(Number);
+  const [ty, tm, td] = toYmd.split("-").map(Number);
+  return {
+    startIso: new Date(shopMidnightMs(fy, fm, fd)).toISOString(),
+    endIso: new Date(shopMidnightMs(ty, tm, td + 1) - 1).toISOString(),
+  };
 }
 
 let lastCorteRows = [];
@@ -1541,8 +1572,7 @@ async function loadCorte() {
   if (!fromEl.value) fromEl.value = todayIso();
   if (!toEl.value) toEl.value = todayIso();
 
-  const startIso = `${fromEl.value}T00:00:00.000Z`;
-  const endIso = `${toEl.value}T23:59:59.999Z`;
+  const { startIso, endIso } = shopDayRange(fromEl.value, toEl.value);
 
   $("#corteList").innerHTML = `<p class="field-hint">Cargando…</p>`;
   try {
@@ -1592,7 +1622,7 @@ function renderCorte() {
   }
   list.innerHTML = rows.map((r) => `
     <div class="tx-row ${admin ? "has-cashier" : ""} ${r.voided ? "is-voided" : ""}">
-      <span class="tx-row-time">${new Date(r.createdAt).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+      <span class="tx-row-time">${new Date(r.createdAt).toLocaleString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
       <span class="tx-row-items">${escape((r.items || []).map((i) => `${i.qty}× ${i.name}`).join(", "))}</span>
       ${admin ? `<span class="tx-row-cashier">${escape(r.cashierName || "—")}</span>` : ""}
       <span class="tx-row-method" title="${escapeAttr(paymentLines(r).map((p) => `${p.method === "tarjeta" ? "Tarjeta" : "Efectivo"}: ${formatPrice(p.amount)}`).join(" · "))}">${paymentBadge(r)}</span>
