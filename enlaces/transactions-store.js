@@ -196,15 +196,14 @@ export async function fetchTransactionsRange(startIso, endIso, cashierUid = null
   const { db, collection, query, where, orderBy, getDocs } = await getFirestore();
 
   if (cashierUid) {
-    const q = query(
-      collection(db, "transactions"),
-      where("cashierUid", "==", cashierUid),
-      orderBy("createdAt", "desc")
-    );
+    // No orderBy here: equality + orderBy on another field needs a composite
+    // index. Sorting client-side keeps this an index-free equality query.
+    const q = query(collection(db, "transactions"), where("cashierUid", "==", cashierUid));
     const snap = await getDocs(q);
     return snap.docs
       .map((d) => d.data())
-      .filter((r) => r.createdAt >= startIso && r.createdAt <= endIso);
+      .filter((r) => r.createdAt >= startIso && r.createdAt <= endIso)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }
 
   const q = query(
