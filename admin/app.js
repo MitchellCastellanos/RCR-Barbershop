@@ -1466,8 +1466,12 @@ function closeReceiptModal() {
 }
 
 function onPrintReceipt() {
-  if (!lastSale) { closeReceiptModal(); return; }
-  const rows = lastSale.items.map((i) => `
+  closeReceiptModal();
+  if (lastSale) printReceipt(lastSale);
+}
+
+function printReceipt(sale) {
+  const rows = (sale.items || []).map((i) => `
     <div style="display:flex;justify-content:space-between;font-size:3mm;margin-bottom:1mm;">
       <span>${i.qty} × ${escape(i.name)}</span>
       <span>${formatPrice(i.unitPrice * i.qty)}</span>
@@ -1476,14 +1480,14 @@ function onPrintReceipt() {
   $("#printReceipt").innerHTML = `
     <div style="width:72mm;font-family:monospace;padding:4mm;">
       <div style="text-align:center;font-weight:700;font-size:4mm;margin-bottom:2mm;">RCR Barber Shop</div>
-      <div style="text-align:center;font-size:2.6mm;margin-bottom:3mm;">${new Date(lastSale.createdAt).toLocaleString("es-MX", { timeZone: SHOP_TZ })}</div>
+      <div style="text-align:center;font-size:2.6mm;margin-bottom:3mm;">${new Date(sale.createdAt).toLocaleString("es-MX", { timeZone: SHOP_TZ })}</div>
       <hr />
       ${rows}
       <hr />
       <div style="display:flex;justify-content:space-between;font-weight:700;font-size:3.4mm;margin-top:2mm;">
-        <span>Total</span><span>${formatPrice(lastSale.total)}</span>
+        <span>Total</span><span>${formatPrice(sale.total)}</span>
       </div>
-      ${(lastSale.payments || []).map((p) => `
+      ${paymentLines(sale).map((p) => `
         <div style="display:flex;justify-content:space-between;font-size:2.8mm;margin-top:1mm;">
           <span>${methodLabel(p.method)}${p.note ? ` (${escape(p.note)})` : ""}</span>
           <span>${formatPrice(p.amount)}</span>
@@ -1493,7 +1497,6 @@ function onPrintReceipt() {
   `;
   document.body.classList.add("is-printing-receipt");
   window.print();
-  closeReceiptModal();
 }
 
 async function openPosScanModal() {
@@ -1678,9 +1681,16 @@ function renderCorte() {
       ${admin ? `<span class="tx-row-cashier">${escape(r.cashierName || "—")}</span>` : ""}
       <span class="tx-row-method" title="${escapeAttr(paymentLines(r).map((p) => `${methodLabel(p.method)}: ${formatPrice(p.amount)}`).join(" · "))}">${paymentBadge(r)}</span>
       <span class="tx-row-total">${formatPrice(r.total)}</span>
+      <button type="button" class="icon-btn" data-action="print" data-tx-id="${r.id}" title="Imprimir recibo"><i class="fas fa-print"></i></button>
       ${r.voided ? "" : `<button type="button" class="icon-btn icon-btn-danger" data-action="void" data-tx-id="${r.id}" title="Cancelar venta"><i class="fas fa-ban"></i></button>`}
     </div>
   `).join("");
+  list.querySelectorAll('[data-action="print"]').forEach((btn) => {
+    btn.onclick = () => {
+      const tx = rows.find((r) => r.id === btn.dataset.txId);
+      if (tx) printReceipt(tx);
+    };
+  });
   list.querySelectorAll('[data-action="void"]').forEach((btn) => {
     btn.onclick = () => onVoidTransaction(btn.dataset.txId);
   });
