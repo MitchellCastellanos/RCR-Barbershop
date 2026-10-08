@@ -18,6 +18,8 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+export const PAYMENT_METHODS = ["efectivo", "tarjeta", "transferencia"];
+
 function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
@@ -31,7 +33,7 @@ export function paymentLines(tx) {
 
 /**
  * cartItems: [{ kind: "service"|"product", refId, name, unitPrice, qty }]
- * payments: [{ method: "efectivo"|"tarjeta", amount, note? }] — one or more
+ * payments: [{ method: "efectivo"|"tarjeta"|"transferencia", amount, note? }] — one or more
  * lines that must add up to the cart total (e.g. split cash/card, or
  * several card swipes). A single line behaves exactly like the old
  * single-method flow.
@@ -52,7 +54,7 @@ export async function sellCart(cartItems, payments, cashier, notes = "") {
   const total = cartItems.reduce((sum, i) => sum + Number(i.unitPrice) * Number(i.qty), 0);
 
   const cleanPayments = payments.map((p) => ({
-    method: p.method === "tarjeta" ? "tarjeta" : "efectivo",
+    method: PAYMENT_METHODS.includes(p.method) ? p.method : "efectivo",
     amount: round2(p.amount),
     note: (p.note || "").trim(),
   }));
