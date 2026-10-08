@@ -869,7 +869,10 @@ body:not(.is-admin) .nav-group-label { display: none; }
     position: fixed;
     inset: 0;
     padding: 4mm;
+    color: #000;
+    background: #fff;
   }
+  body.is-printing-receipt #printReceipt hr { border: 0; border-top: 1px dashed #000; }
 }
 
 /* ============================================================
