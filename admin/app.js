@@ -12,7 +12,7 @@ import {
   adjustStock, subscribeMovements, uploadProductPhoto, deleteProductPhoto,
 } from "../enlaces/products-store.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
-import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines } from "../enlaces/transactions-store.js";
+import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
 import {
   resolveMyProfile, subscribeUsers, createCashier, setUserActive,
@@ -44,6 +44,7 @@ let qrCurrentProduct = null;
 let posCart = [];
 let posKind = "service";       // which picker list is showing: "service" | "product"
 let posPaymentMethod = "efectivo"; // quick single-method selection (used when not split)
+let commissionSettings = { ...DEFAULT_COMMISSION };
 let posSplitMode = false;          // true once "Pago mixto" is active
 let posPayments = [];              // split-mode payment lines: [{ id, method, amount, note }]
 let posScanStop = null;        // stops the camera scan loop
@@ -228,6 +229,7 @@ async function startApp() {
   $("#posReceiptPrintBtn").onclick = onPrintReceipt;
   $("#corteFrom").addEventListener("change", loadCorte);
   $("#corteTo").addEventListener("change", loadCorte);
+  $("#commissionSaveBtn").onclick = onSaveCommission;
   $("#corteCashier").addEventListener("change", (e) => {
     corteCashierFilter = e.target.value;
     loadCorte();
@@ -1311,6 +1313,9 @@ function renderPosCart() {
 }
 
 // ---------- Payment (single method or split across cash/multiple cards) ----------
+const METHOD_LABELS = { efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia" };
+function methodLabel(m) { return METHOD_LABELS[m] || "Efectivo"; }
+
 function setQuickPaymentMethod(method) {
   posSplitMode = false;
   posPaymentMethod = method;
@@ -1334,7 +1339,7 @@ function onAddPaymentLine() {
   const lastMethod = posPayments[posPayments.length - 1]?.method || "efectivo";
   posPayments.push({
     id: makeId(),
-    method: lastMethod === "efectivo" ? "tarjeta" : "efectivo",
+    method: PAYMENT_METHODS[(PAYMENT_METHODS.indexOf(lastMethod) + 1) % PAYMENT_METHODS.length],
     amount: Math.max(0, remaining),
     note: "",
   });
@@ -1378,8 +1383,7 @@ function renderPosPayments() {
   linesEl.innerHTML = posPayments.map((p) => `
     <li class="pos-payment-line" data-id="${p.id}">
       <select data-field="method">
-        <option value="efectivo" ${p.method === "efectivo" ? "selected" : ""}>Efectivo</option>
-        <option value="tarjeta" ${p.method === "tarjeta" ? "selected" : ""}>Tarjeta</option>
+        ${PAYMENT_METHODS.map((m) => `<option value="${m}" ${p.method === m ? "selected" : ""}>${methodLabel(m)}</option>`).join("")}
       </select>
       <input type="number" min="0" step="0.01" data-field="amount" value="${p.amount}" />
       <input type="text" data-field="note" placeholder="Ref. (opcional)" maxlength="20" value="${escapeAttr(p.note || "")}" />
@@ -1419,8 +1423,8 @@ function currentPayments() {
 }
 
 function summarizePayments(payments) {
-  if (payments.length === 1) return payments[0].method === "tarjeta" ? "Tarjeta" : "Efectivo";
-  return payments.map((p) => `${p.method === "tarjeta" ? "Tarjeta" : "Efectivo"} ${formatPrice(p.amount)}`).join(" + ");
+  if (payments.length === 1) return methodLabel(payments[0].method);
+  return payments.map((p) => `${methodLabel(p.method)} ${formatPrice(p.amount)}`).join(" + ");
 }
 
 async function onCharge() {
@@ -1481,7 +1485,7 @@ function onPrintReceipt() {
       </div>
       ${(lastSale.payments || []).map((p) => `
         <div style="display:flex;justify-content:space-between;font-size:2.8mm;margin-top:1mm;">
-          <span>${p.method === "tarjeta" ? "Tarjeta" : "Efectivo"}${p.note ? ` (${escape(p.note)})` : ""}</span>
+          <span>${methodLabel(p.method)}${p.note ? ` (${escape(p.note)})` : ""}</span>
           <span>${formatPrice(p.amount)}</span>
         </div>
       `).join("")}
@@ -1576,6 +1580,8 @@ async function loadCorte() {
 
   $("#corteList").innerHTML = `<p class="field-hint">Cargando…</p>`;
   try {
+    commissionSettings = await fetchCommissionSettings();
+    renderCommissionSettings();
     // Cashiers must query filtered by their own uid — firestore.rules can
     // only allow a "list" query it can prove is scoped to their own sales
     // (see fetchTransactionsRange). Admin fetches everyone's.
@@ -1587,10 +1593,35 @@ async function loadCorte() {
   }
 }
 
+function renderCommissionSettings() {
+  const box = $("#commissionSettings");
+  box.hidden = !isAdminRole();
+  if (!isAdminRole()) return;
+  $("#commissionPercent").value = commissionSettings.servicePercent;
+  $("#commissionProduct").value = commissionSettings.productAmount;
+}
+
+async function onSaveCommission() {
+  const btn = $("#commissionSaveBtn");
+  btn.disabled = true;
+  try {
+    commissionSettings = await saveCommissionSettings({
+      servicePercent: $("#commissionPercent").value,
+      productAmount: $("#commissionProduct").value,
+    });
+    renderCommissionSettings();
+    renderCorte();
+    toast("Comisión guardada.", "success");
+  } catch (err) {
+    toast(err.message || "No se pudo guardar la comisión.", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function paymentBadge(r) {
-  if (r.paymentMethod === "tarjeta") return "Tarjeta";
   if (r.paymentMethod === "mixto") return "Mixto";
-  return "Efectivo";
+  return methodLabel(r.paymentMethod);
 }
 
 function renderCorte() {
@@ -1600,18 +1631,38 @@ function renderCorte() {
     : lastCorteRows;
 
   const valid = rows.filter((r) => !r.voided);
-  let efectivo = 0, tarjeta = 0;
+  let efectivo = 0, tarjeta = 0, transferencia = 0;
   valid.forEach((r) => {
     paymentLines(r).forEach((p) => {
-      if (p.method === "tarjeta") tarjeta += Number(p.amount) || 0;
-      else efectivo += Number(p.amount) || 0;
+      const amt = Number(p.amount) || 0;
+      if (p.method === "tarjeta") tarjeta += amt;
+      else if (p.method === "transferencia") transferencia += amt;
+      else efectivo += amt;
     });
   });
+
+  let commissionTotal = 0;
+  const byCashier = new Map();
+  valid.forEach((r) => {
+    const c = saleCommission(r, commissionSettings);
+    commissionTotal += c;
+    byCashier.set(r.cashierName || "—", (byCashier.get(r.cashierName || "—") || 0) + c);
+  });
+  commissionTotal = Math.round(commissionTotal * 100) / 100;
+  const breakdownEl = $("#corteCommissionBreakdown");
+  const showBreakdown = admin && corteCashierFilter === "all" && byCashier.size > 0;
+  breakdownEl.hidden = !showBreakdown;
+  if (showBreakdown) {
+    breakdownEl.textContent = "Comisión por cajero: " +
+      [...byCashier].map(([n, v]) => `${n} ${formatPrice(Math.round(v * 100) / 100)}`).join(" · ");
+  }
 
   $("#corteTotals").innerHTML = `
     <div class="pos-report-tile"><div class="pos-report-tile-label">Efectivo</div><div class="pos-report-tile-value">${formatPrice(efectivo)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Tarjeta</div><div class="pos-report-tile-value">${formatPrice(tarjeta)}</div></div>
-    <div class="pos-report-tile"><div class="pos-report-tile-label">Total</div><div class="pos-report-tile-value">${formatPrice(efectivo + tarjeta)}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Transferencia</div><div class="pos-report-tile-value">${formatPrice(transferencia)}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Total</div><div class="pos-report-tile-value">${formatPrice(efectivo + tarjeta + transferencia)}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">${admin && corteCashierFilter === "all" ? "Comisiones (todos)" : "Comisión"}</div><div class="pos-report-tile-value">${formatPrice(commissionTotal)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Ventas</div><div class="pos-report-tile-value">${valid.length}</div></div>
   `;
 
@@ -1623,9 +1674,9 @@ function renderCorte() {
   list.innerHTML = rows.map((r) => `
     <div class="tx-row ${admin ? "has-cashier" : ""} ${r.voided ? "is-voided" : ""}">
       <span class="tx-row-time">${new Date(r.createdAt).toLocaleString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-      <span class="tx-row-items">${escape((r.items || []).map((i) => `${i.qty}× ${i.name}`).join(", "))}</span>
+      <span class="tx-row-items">${escape((r.items || []).map((i) => `${i.qty}× ${i.name}`).join(", "))}${r.voided ? " (cancelada)" : ""}<br><small style="opacity:.65">${escape(paymentLines(r).map((p) => `${methodLabel(p.method)} ${formatPrice(p.amount)}${p.note ? ` (${p.note})` : ""}`).join(" + "))}</small></span>
       ${admin ? `<span class="tx-row-cashier">${escape(r.cashierName || "—")}</span>` : ""}
-      <span class="tx-row-method" title="${escapeAttr(paymentLines(r).map((p) => `${p.method === "tarjeta" ? "Tarjeta" : "Efectivo"}: ${formatPrice(p.amount)}`).join(" · "))}">${paymentBadge(r)}</span>
+      <span class="tx-row-method" title="${escapeAttr(paymentLines(r).map((p) => `${methodLabel(p.method)}: ${formatPrice(p.amount)}`).join(" · "))}">${paymentBadge(r)}</span>
       <span class="tx-row-total">${formatPrice(r.total)}</span>
       ${r.voided ? "" : `<button type="button" class="icon-btn icon-btn-danger" data-action="void" data-tx-id="${r.id}" title="Cancelar venta"><i class="fas fa-ban"></i></button>`}
     </div>

@@ -957,9 +957,9 @@ body:not(.is-admin) .nav-group-label { display: none; }
 }
 .pos-qty button:hover { border-color: var(--gold); color: var(--gold); }
 .pos-cart-empty { text-align: center; color: var(--text-faint); font-size: 0.85rem; padding: 20px 0; }
-.pos-payment { display: flex; gap: 8px; margin-bottom: 12px; }
+.pos-payment { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .pos-payment button {
-  flex: 1;
+  flex: 1 1 calc(50% - 8px);
   padding: 10px;
   border-radius: 10px;
   border: 1px solid var(--border);
