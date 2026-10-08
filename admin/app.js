@@ -1627,7 +1627,7 @@ function renderCorte() {
   list.innerHTML = rows.map((r) => `
     <div class="tx-row ${admin ? "has-cashier" : ""} ${r.voided ? "is-voided" : ""}">
       <span class="tx-row-time">${new Date(r.createdAt).toLocaleString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-      <span class="tx-row-items">${escape((r.items || []).map((i) => `${i.qty}× ${i.name}`).join(", "))}</span>
+      <span class="tx-row-items">${escape((r.items || []).map((i) => `${i.qty}× ${i.name}`).join(", "))}${r.voided ? " (cancelada)" : ""}<br><small style="opacity:.65">${escape(paymentLines(r).map((p) => `${methodLabel(p.method)} ${formatPrice(p.amount)}${p.note ? ` (${p.note})` : ""}`).join(" + "))}</small></span>
       ${admin ? `<span class="tx-row-cashier">${escape(r.cashierName || "—")}</span>` : ""}
       <span class="tx-row-method" title="${escapeAttr(paymentLines(r).map((p) => `${methodLabel(p.method)}: ${formatPrice(p.amount)}`).join(" · "))}">${paymentBadge(r)}</span>
       <span class="tx-row-total">${formatPrice(r.total)}</span>
