@@ -1645,20 +1645,24 @@ function renderCorte() {
     });
   });
 
-  let commissionTotal = 0, serviceBase = 0, productUnits = 0;
+  let commissionTotal = 0, serviceBase = 0, productUnits = 0, productBase = 0;
   const byCashier = new Map();
   valid.forEach((r) => {
     const c = saleCommission(r, commissionSettings);
     commissionTotal += c;
     byCashier.set(r.cashierName || "—", (byCashier.get(r.cashierName || "—") || 0) + c);
     (r.items || []).forEach((i) => {
-      if (i.kind === "product") productUnits += Number(i.qty) || 0;
-      else serviceBase += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
+      if (i.kind === "product") {
+        productUnits += Number(i.qty) || 0;
+        productBase += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
+      } else serviceBase += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
     });
   });
   const r2 = (n) => Math.round(n * 100) / 100;
   commissionTotal = r2(commissionTotal);
   const { servicePercent, productAmount } = commissionSettings;
+  const serviceCommission = r2(serviceBase * servicePercent / 100);
+  const productCommission = r2(productUnits * productAmount);
   const summaryEl = $("#corteCommissionSummary");
   summaryEl.hidden = valid.length === 0;
   summaryEl.innerHTML = `
@@ -1671,6 +1675,14 @@ function renderCorte() {
     <div class="pos-commission-line"><span>Tarjeta</span><strong>${formatPrice(r2(tarjeta))}</strong></div>
     <div class="pos-commission-line"><span>Transferencia</span><strong>${formatPrice(r2(transferencia))}</strong></div>
     <div class="pos-commission-line pos-commission-total"><span>Total cobrado</span><strong>${formatPrice(r2(efectivo + tarjeta + transferencia))}</strong></div>
+    <div class="pos-commission-title" style="margin-top:6px;">Ventas por tipo</div>
+    <div class="pos-commission-line"><span>Servicios</span><strong>${formatPrice(r2(serviceBase))}</strong></div>
+    <div class="pos-commission-line"><span>Productos (${productUnits} ${productUnits === 1 ? "pieza" : "piezas"})</span><strong>${formatPrice(r2(productBase))}</strong></div>
+    ${admin ? `
+    <div class="pos-commission-title" style="margin-top:6px;">Para la barbería (después de comisión)</div>
+    <div class="pos-commission-line"><span>Servicios</span><strong>${formatPrice(r2(serviceBase - serviceCommission))}</strong></div>
+    <div class="pos-commission-line"><span>Productos</span><strong>${formatPrice(r2(productBase - productCommission))}</strong></div>
+    <div class="pos-commission-line pos-commission-total"><span>Total para la barbería</span><strong>${formatPrice(r2(efectivo + tarjeta + transferencia - commissionTotal))}</strong></div>` : ""}
     ${admin && corteCashierFilter === "all" && byCashier.size > 1
       ? `<div class="pos-commission-by">Por cajero: ${[...byCashier].map(([n, v]) => `${escape(n)} ${formatPrice(r2(v))}`).join(" · ")}</div>`
       : ""}
@@ -1682,6 +1694,8 @@ function renderCorte() {
     <div class="pos-report-tile"><div class="pos-report-tile-label">Transferencia</div><div class="pos-report-tile-value">${formatPrice(transferencia)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Total</div><div class="pos-report-tile-value">${formatPrice(efectivo + tarjeta + transferencia)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">${admin && corteCashierFilter === "all" ? "Comisiones (todos)" : "Comisión"}</div><div class="pos-report-tile-value">${formatPrice(commissionTotal)}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Productos</div><div class="pos-report-tile-value">${formatPrice(r2(productBase))}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Piezas vendidas</div><div class="pos-report-tile-value">${productUnits}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Ventas</div><div class="pos-report-tile-value">${valid.length}</div></div>
   `;
 
