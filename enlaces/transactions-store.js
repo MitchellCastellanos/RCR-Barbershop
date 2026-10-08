@@ -215,3 +215,47 @@ export async function fetchTransactionsRange(startIso, endIso, cashierUid = null
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data());
 }
+
+// ------------------------------------------------------------
+// Cashier commission settings (config/commission). Readable by any
+// signed-in user (cashiers see their own cut), writable by admin only.
+// ------------------------------------------------------------
+export const DEFAULT_COMMISSION = { servicePercent: 50, productAmount: 20 };
+
+function cleanCommission(c) {
+  const pct = Number(c?.servicePercent);
+  const amt = Number(c?.productAmount);
+  return {
+    servicePercent: Number.isFinite(pct) && pct >= 0 && pct <= 100 ? pct : DEFAULT_COMMISSION.servicePercent,
+    productAmount: Number.isFinite(amt) && amt >= 0 ? amt : DEFAULT_COMMISSION.productAmount,
+  };
+}
+
+export async function fetchCommissionSettings() {
+  if (!FIREBASE_ENABLED) return { ...DEFAULT_COMMISSION };
+  try {
+    const { db, doc, getDoc } = await getFirestore();
+    const snap = await getDoc(doc(db, "config", "commission"));
+    return snap.exists() ? cleanCommission(snap.data()) : { ...DEFAULT_COMMISSION };
+  } catch (_) {
+    return { ...DEFAULT_COMMISSION };
+  }
+}
+
+export async function saveCommissionSettings(settings) {
+  if (!FIREBASE_ENABLED) throw new Error("Firebase no está habilitado.");
+  const clean = cleanCommission(settings);
+  const { db, doc, setDoc } = await getFirestore();
+  await setDoc(doc(db, "config", "commission"), { ...clean, updatedAt: nowIso() });
+  return clean;
+}
+
+/** Commission earned on one sale: percent of service lines + flat amount per product unit. */
+export function saleCommission(tx, settings) {
+  let services = 0, productUnits = 0;
+  (tx.items || []).forEach((i) => {
+    if (i.kind === "product") productUnits += Number(i.qty) || 0;
+    else services += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
+  });
+  return round2(services * settings.servicePercent / 100 + productUnits * settings.productAmount);
+}

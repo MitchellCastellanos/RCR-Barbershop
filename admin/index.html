@@ -181,6 +181,20 @@
           </label>
         </div>
         <div class="pos-report-totals" id="corteTotals"></div>
+        <div id="corteCommissionBreakdown" class="field-hint" style="margin-bottom:14px;" hidden></div>
+        <div id="commissionSettings" class="form-grid" style="margin-bottom:14px;" hidden>
+          <label class="field">
+            <span class="field-label">Comisión por servicios (%)</span>
+            <input type="number" id="commissionPercent" min="0" max="100" step="0.5" />
+          </label>
+          <label class="field">
+            <span class="field-label">Comisión por producto vendido ($)</span>
+            <input type="number" id="commissionProduct" min="0" step="0.5" />
+          </label>
+          <div class="field" style="align-self:end;">
+            <button type="button" class="btn btn-ghost btn-sm" id="commissionSaveBtn"><i class="fas fa-check"></i> Guardar comisión</button>
+          </div>
+        </div>
         <div id="corteList"></div>
       </div>
     </section>

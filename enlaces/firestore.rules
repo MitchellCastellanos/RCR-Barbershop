@@ -51,6 +51,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Cashier commission rates: any signed-in user can read (cashiers see
+    // their own cut in the corte); only admin can change them.
+    match /config/commission {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Products: public read (storefront + QR landing page). Admin can
     // change anything (name/price/etc). A signed-in cashier may only
     // touch `stock` (and only downward) — that's the write a sale makes

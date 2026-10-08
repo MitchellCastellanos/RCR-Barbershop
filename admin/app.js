@@ -12,7 +12,7 @@ import {
   adjustStock, subscribeMovements, uploadProductPhoto, deleteProductPhoto,
 } from "../enlaces/products-store.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
-import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS } from "../enlaces/transactions-store.js";
+import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
 import {
   resolveMyProfile, subscribeUsers, createCashier, setUserActive,
@@ -44,6 +44,7 @@ let qrCurrentProduct = null;
 let posCart = [];
 let posKind = "service";       // which picker list is showing: "service" | "product"
 let posPaymentMethod = "efectivo"; // quick single-method selection (used when not split)
+let commissionSettings = { ...DEFAULT_COMMISSION };
 let posSplitMode = false;          // true once "Pago mixto" is active
 let posPayments = [];              // split-mode payment lines: [{ id, method, amount, note }]
 let posScanStop = null;        // stops the camera scan loop
@@ -228,6 +229,7 @@ async function startApp() {
   $("#posReceiptPrintBtn").onclick = onPrintReceipt;
   $("#corteFrom").addEventListener("change", loadCorte);
   $("#corteTo").addEventListener("change", loadCorte);
+  $("#commissionSaveBtn").onclick = onSaveCommission;
   $("#corteCashier").addEventListener("change", (e) => {
     corteCashierFilter = e.target.value;
     loadCorte();
@@ -1578,6 +1580,8 @@ async function loadCorte() {
 
   $("#corteList").innerHTML = `<p class="field-hint">Cargando…</p>`;
   try {
+    commissionSettings = await fetchCommissionSettings();
+    renderCommissionSettings();
     // Cashiers must query filtered by their own uid — firestore.rules can
     // only allow a "list" query it can prove is scoped to their own sales
     // (see fetchTransactionsRange). Admin fetches everyone's.
@@ -1586,6 +1590,32 @@ async function loadCorte() {
     renderCorte();
   } catch (err) {
     $("#corteList").innerHTML = `<p class="field-hint">Error: ${escape(err.message)}</p>`;
+  }
+}
+
+function renderCommissionSettings() {
+  const box = $("#commissionSettings");
+  box.hidden = !isAdminRole();
+  if (!isAdminRole()) return;
+  $("#commissionPercent").value = commissionSettings.servicePercent;
+  $("#commissionProduct").value = commissionSettings.productAmount;
+}
+
+async function onSaveCommission() {
+  const btn = $("#commissionSaveBtn");
+  btn.disabled = true;
+  try {
+    commissionSettings = await saveCommissionSettings({
+      servicePercent: $("#commissionPercent").value,
+      productAmount: $("#commissionProduct").value,
+    });
+    renderCommissionSettings();
+    renderCorte();
+    toast("Comisión guardada.", "success");
+  } catch (err) {
+    toast(err.message || "No se pudo guardar la comisión.", "error");
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -1611,11 +1641,28 @@ function renderCorte() {
     });
   });
 
+  let commissionTotal = 0;
+  const byCashier = new Map();
+  valid.forEach((r) => {
+    const c = saleCommission(r, commissionSettings);
+    commissionTotal += c;
+    byCashier.set(r.cashierName || "—", (byCashier.get(r.cashierName || "—") || 0) + c);
+  });
+  commissionTotal = Math.round(commissionTotal * 100) / 100;
+  const breakdownEl = $("#corteCommissionBreakdown");
+  const showBreakdown = admin && corteCashierFilter === "all" && byCashier.size > 0;
+  breakdownEl.hidden = !showBreakdown;
+  if (showBreakdown) {
+    breakdownEl.textContent = "Comisión por cajero: " +
+      [...byCashier].map(([n, v]) => `${n} ${formatPrice(Math.round(v * 100) / 100)}`).join(" · ");
+  }
+
   $("#corteTotals").innerHTML = `
     <div class="pos-report-tile"><div class="pos-report-tile-label">Efectivo</div><div class="pos-report-tile-value">${formatPrice(efectivo)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Tarjeta</div><div class="pos-report-tile-value">${formatPrice(tarjeta)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Transferencia</div><div class="pos-report-tile-value">${formatPrice(transferencia)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Total</div><div class="pos-report-tile-value">${formatPrice(efectivo + tarjeta + transferencia)}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">${admin && corteCashierFilter === "all" ? "Comisiones (todos)" : "Comisión"}</div><div class="pos-report-tile-value">${formatPrice(commissionTotal)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Ventas</div><div class="pos-report-tile-value">${valid.length}</div></div>
   `;
 
