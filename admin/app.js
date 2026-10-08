@@ -1666,6 +1666,11 @@ function renderCorte() {
     <div class="pos-commission-line"><span>Servicios: ${formatPrice(r2(serviceBase))} × ${servicePercent}%</span><strong>${formatPrice(r2(serviceBase * servicePercent / 100))}</strong></div>
     <div class="pos-commission-line"><span>Productos: ${productUnits} × ${formatPrice(productAmount)}</span><strong>${formatPrice(r2(productUnits * productAmount))}</strong></div>
     <div class="pos-commission-line pos-commission-total"><span>Total comisión</span><strong>${formatPrice(commissionTotal)}</strong></div>
+    <div class="pos-commission-title" style="margin-top:6px;">Cobrado por método de pago</div>
+    <div class="pos-commission-line"><span>Efectivo</span><strong>${formatPrice(r2(efectivo))}</strong></div>
+    <div class="pos-commission-line"><span>Tarjeta</span><strong>${formatPrice(r2(tarjeta))}</strong></div>
+    <div class="pos-commission-line"><span>Transferencia</span><strong>${formatPrice(r2(transferencia))}</strong></div>
+    <div class="pos-commission-line pos-commission-total"><span>Total cobrado</span><strong>${formatPrice(r2(efectivo + tarjeta + transferencia))}</strong></div>
     ${admin && corteCashierFilter === "all" && byCashier.size > 1
       ? `<div class="pos-commission-by">Por cajero: ${[...byCashier].map(([n, v]) => `${escape(n)} ${formatPrice(r2(v))}`).join(" · ")}</div>`
       : ""}
