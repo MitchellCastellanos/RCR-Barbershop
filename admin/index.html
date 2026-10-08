@@ -69,6 +69,7 @@
         <div class="nav-group">
           <p class="nav-group-label">Equipo</p>
           <button class="tab" data-tab="usuarios" data-title="Usuarios" role="tab"><i class="fas fa-users"></i> Usuarios</button>
+          <button class="tab" data-tab="comisiones" data-title="Comisiones" role="tab"><i class="fas fa-percent"></i> Comisiones</button>
         </div>
       </nav>
 
@@ -181,20 +182,7 @@
           </label>
         </div>
         <div class="pos-report-totals" id="corteTotals"></div>
-        <div id="corteCommissionBreakdown" class="field-hint" style="margin-bottom:14px;" hidden></div>
-        <div id="commissionSettings" class="form-grid" style="margin-bottom:14px;" hidden>
-          <label class="field">
-            <span class="field-label">Comisión por servicios (%)</span>
-            <input type="number" id="commissionPercent" min="0" max="100" step="0.5" />
-          </label>
-          <label class="field">
-            <span class="field-label">Comisión por producto vendido ($)</span>
-            <input type="number" id="commissionProduct" min="0" step="0.5" />
-          </label>
-          <div class="field" style="align-self:end;">
-            <button type="button" class="btn btn-ghost btn-sm" id="commissionSaveBtn"><i class="fas fa-check"></i> Guardar comisión</button>
-          </div>
-        </div>
+        <div id="corteCommissionSummary" class="pos-commission-summary" hidden></div>
         <div id="corteList"></div>
       </div>
     </section>
@@ -345,6 +333,31 @@
           <span class="field-label">Calificación (estrellas)</span>
           <input type="number" step="0.1" min="0" max="5" data-business-key="rating" />
         </label>
+      </div>
+    </section>
+
+    <!-- ─── Comisiones ─── -->
+    <section class="panel" id="panel-comisiones" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">Comisiones de cajeros</h2>
+      </div>
+      <p class="panel-help">
+        Se define una sola vez y aplica a todos los cajeros. Cada cajero ve su comisión
+        del día en su corte de caja: el porcentaje se calcula sobre los servicios y el monto
+        fijo se paga por cada producto vendido. Las ventas canceladas no cuentan.
+      </p>
+      <div class="form-grid">
+        <label class="field">
+          <span class="field-label">Comisión por servicios (%)</span>
+          <input type="number" id="commissionPercent" min="0" max="100" step="0.5" />
+        </label>
+        <label class="field">
+          <span class="field-label">Comisión por producto vendido ($)</span>
+          <input type="number" id="commissionProduct" min="0" step="0.5" />
+        </label>
+      </div>
+      <div style="margin-top:14px;">
+        <button type="button" class="btn btn-primary" id="commissionSaveBtn"><i class="fas fa-check"></i> Guardar comisión</button>
       </div>
     </section>
 

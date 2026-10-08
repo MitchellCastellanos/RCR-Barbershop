@@ -1159,3 +1159,20 @@ body:not(.is-admin) .nav-group-label { display: none; }
   .modal-head { top: -16px; margin: -16px -16px 12px; padding: 16px 16px 12px; }
   .modal-actions { bottom: -16px; margin: 8px -16px -16px; padding: 10px 16px 16px; }
 }
+
+.pos-commission-summary {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+.pos-commission-title { font-size: 0.7rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.pos-commission-line { display: flex; justify-content: space-between; gap: 12px; color: var(--text-muted); }
+.pos-commission-line strong { color: var(--gold-light); }
+.pos-commission-total { border-top: 1px solid var(--border); padding-top: 6px; color: var(--text); font-weight: 600; }
+.pos-commission-by { font-size: 0.8rem; color: var(--text-faint); }
