@@ -12,6 +12,14 @@ import {
   createSecondaryApp, getAuthForApp, getFirestoreForApp, destroySecondaryApp,
 } from "./data-store.js";
 
+/** Starting cash each cashier gets per day (users/{uid}.pettyCash); admin can change it per cashier. */
+export const DEFAULT_PETTY_CASH = 300;
+
+export function pettyCashOf(profile) {
+  const n = Number(profile && profile.pettyCash);
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_PETTY_CASH;
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -80,7 +88,7 @@ export async function createCashier({ email, password, displayName }) {
     const { db, doc, setDoc } = await getFirestore();
     const profile = {
       uid, email, displayName: displayName || email.split("@")[0],
-      role: "cajero", active: true, createdAt: nowIso(),
+      role: "cajero", active: true, pettyCash: DEFAULT_PETTY_CASH, createdAt: nowIso(),
     };
     await setDoc(doc(db, "users", uid), profile);
     return profile;

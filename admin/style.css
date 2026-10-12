@@ -502,7 +502,9 @@ body:not(.is-admin) .nav-group-label { display: none; }
 .user-row.is-self { border-color: rgba(212,186,103,0.4); }
 .user-row-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .user-row-email { font-size: 0.78rem; color: var(--text-faint); margin-top: 2px; }
-.user-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.user-row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.user-row-petty { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-faint); }
+.user-row-petty input { width: 80px; padding: 6px 8px; }
 
 /* ============================================================
    GALLERY ROWS

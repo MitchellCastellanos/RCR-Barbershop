@@ -16,7 +16,7 @@ import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMEN
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
 import {
   resolveMyProfile, subscribeUsers, createCashier, setUserActive,
-  sendPasswordReset, withAdminAuthorization,
+  sendPasswordReset, withAdminAuthorization, updateUserProfile, pettyCashOf,
 } from "../enlaces/users-store.js";
 
 const $  = (s, r = document) => r.querySelector(s);
@@ -338,6 +338,7 @@ function renderUsers() {
         <div class="user-row-email">${escape(u.email)}</div>
       </div>
       <div class="user-row-actions">
+        ${u.role !== "admin" ? `<label class="user-row-petty">Caja chica $<input type="number" min="0" step="1" value="${pettyCashOf(u)}" data-action="petty-input" /><button type="button" class="btn btn-ghost btn-sm" data-action="petty-save">Guardar</button></label>` : ""}
         <button type="button" class="btn btn-ghost btn-sm" data-action="reset">Restablecer contraseña</button>
         ${u.role !== "admin" ? `<button type="button" class="btn btn-ghost btn-sm" data-action="toggle">${u.active === false ? "Activar" : "Desactivar"}</button>` : ""}
       </div>
@@ -345,6 +346,8 @@ function renderUsers() {
     li.querySelector('[data-action="reset"]').onclick = () => onResetPassword(u);
     const toggleBtn = li.querySelector('[data-action="toggle"]');
     if (toggleBtn) toggleBtn.onclick = () => onToggleCashierActive(u);
+    const pettySave = li.querySelector('[data-action="petty-save"]');
+    if (pettySave) pettySave.onclick = () => onSavePettyCash(u, li.querySelector('[data-action="petty-input"]').value);
     if (isSelf) li.classList.add("is-self");
     list.appendChild(li);
   });
@@ -380,6 +383,17 @@ async function onCashierFormSubmit(ev) {
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-check"></i> Crear cajero`;
+  }
+}
+
+async function onSavePettyCash(u, value) {
+  const amount = Number(value);
+  if (value === "" || !Number.isFinite(amount) || amount < 0) { toast("Ingresa un monto válido para la caja chica.", "error"); return; }
+  try {
+    await updateUserProfile(u.uid, { pettyCash: Math.round(amount * 100) / 100 });
+    toast(`Caja chica de ${u.displayName || u.email}: ${formatPrice(amount)}.`, "success");
+  } catch (err) {
+    toast(err.message || "Error al guardar la caja chica.", "error");
   }
 }
 
@@ -1566,6 +1580,15 @@ function shopDayRange(fromYmd, toYmd) {
 
 let lastCorteRows = [];
 
+// Días (en hora de México) que cubre el rango seleccionado, mínimo 1
+function corteDayCount() {
+  const from = $("#corteFrom").value, to = $("#corteTo").value;
+  if (!from || !to) return 1;
+  const [fy, fm, fd] = from.split("-").map(Number);
+  const [ty, tm, td] = to.split("-").map(Number);
+  return Math.max(1, Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000) + 1);
+}
+
 function renderCorteCashierOptions() {
   const sel = $("#corteCashier");
   if (!sel || !isAdminRole()) return;
@@ -1659,6 +1682,18 @@ function renderCorte() {
     });
   });
   const r2 = (n) => Math.round(n * 100) / 100;
+
+  // Caja chica: cada cajero arranca cada día con su monto; lo que debe dejar en
+  // caja es esa caja chica (por día del rango) + el efectivo que cobró.
+  const days = corteDayCount();
+  const pettyUids = new Set(valid.map((r) => r.cashierUid));
+  if (!admin) pettyUids.add(myProfile.uid);
+  else if (corteCashierFilter !== "all") pettyUids.add(corteCashierFilter);
+  const pettyCash = r2([...pettyUids].reduce((sum, uid) => {
+    const prof = admin ? allUsers.find((u) => u.uid === uid) : myProfile;
+    return sum + (prof ? pettyCashOf(prof) : 0) * days;
+  }, 0));
+  const cashDue = r2(pettyCash + efectivo);
   commissionTotal = r2(commissionTotal);
   const { servicePercent, productAmount } = commissionSettings;
   const serviceCommission = r2(serviceBase * servicePercent / 100);
@@ -1675,6 +1710,10 @@ function renderCorte() {
     <div class="pos-commission-line"><span>Tarjeta</span><strong>${formatPrice(r2(tarjeta))}</strong></div>
     <div class="pos-commission-line"><span>Transferencia</span><strong>${formatPrice(r2(transferencia))}</strong></div>
     <div class="pos-commission-line pos-commission-total"><span>Total cobrado</span><strong>${formatPrice(r2(efectivo + tarjeta + transferencia))}</strong></div>
+    <div class="pos-commission-title" style="margin-top:6px;">Efectivo a dejar en caja</div>
+    <div class="pos-commission-line"><span>Caja chica${days > 1 ? ` (${days} días)` : ""}</span><strong>${formatPrice(pettyCash)}</strong></div>
+    <div class="pos-commission-line"><span>Efectivo cobrado</span><strong>${formatPrice(r2(efectivo))}</strong></div>
+    <div class="pos-commission-line pos-commission-total"><span>Total a dejar en caja</span><strong>${formatPrice(cashDue)}</strong></div>
     <div class="pos-commission-title" style="margin-top:6px;">Ventas por tipo</div>
     <div class="pos-commission-line"><span>Servicios</span><strong>${formatPrice(r2(serviceBase))}</strong></div>
     <div class="pos-commission-line"><span>Productos (${productUnits} ${productUnits === 1 ? "pieza" : "piezas"})</span><strong>${formatPrice(r2(productBase))}</strong></div>
@@ -1692,6 +1731,7 @@ function renderCorte() {
     <div class="pos-report-tile"><div class="pos-report-tile-label">Efectivo</div><div class="pos-report-tile-value">${formatPrice(efectivo)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Tarjeta</div><div class="pos-report-tile-value">${formatPrice(tarjeta)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Transferencia</div><div class="pos-report-tile-value">${formatPrice(transferencia)}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Efectivo a dejar</div><div class="pos-report-tile-value">${formatPrice(cashDue)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Total</div><div class="pos-report-tile-value">${formatPrice(efectivo + tarjeta + transferencia)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">${admin && corteCashierFilter === "all" ? "Comisiones (todos)" : "Comisión"}</div><div class="pos-report-tile-value">${formatPrice(commissionTotal)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Productos</div><div class="pos-report-tile-value">${formatPrice(r2(productBase))}</div></div>
