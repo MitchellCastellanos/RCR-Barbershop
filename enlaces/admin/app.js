@@ -9,7 +9,7 @@ import { FIREBASE_ENABLED } from "../firebase-config.js";
 import { fetchData, saveData, getAuth, getStorage } from "../data-store.js";
 import {
   subscribeProducts, createProduct, updateProduct, deleteProduct,
-  adjustStock, subscribeMovements, uploadProductPhoto, deleteProductPhoto,
+  adjustStock, transferStock, LOCATION_LABELS, subscribeMovements, uploadProductPhoto, deleteProductPhoto,
 } from "../products-store.js";
 import { buildProductUrl, renderQrToCanvas } from "../qr.js";
 import { sellCart, voidTransaction, fetchTransactionsRange } from "../transactions-store.js";
@@ -465,6 +465,7 @@ function renderProducts() {
     li.className = "product-card" + (p.active === false ? " is-inactive" : "");
     const photo = p.photos && p.photos[0] ? p.photos[0].url : null;
     const stock = Number(p.stock) || 0;
+    const warehouse = Number(p.warehouseStock) || 0;
     const low = stock <= (Number(p.lowStockThreshold) || 0);
     li.innerHTML = `
       <div class="product-thumb">
@@ -475,7 +476,10 @@ function renderProducts() {
         ${p.category ? `<div class="product-category">${escape(p.category)}</div>` : ""}
         <div class="product-meta">
           <span class="product-price">${formatPrice(p.price)}</span>
-          <span class="stock-chip ${low ? "is-low" : ""}">${stock <= 0 ? "Agotado" : `${stock} ${escape(p.unit || "pza")}`}</span>
+          <span class="stock-chip ${low ? "is-low" : ""}" title="En la barbería (caja)">${stock <= 0 ? "Barbería: agotado" : `Barbería: ${stock} ${escape(p.unit || "pza")}`}</span>
+        </div>
+        <div class="product-meta">
+          <span class="stock-chip" title="En el almacén">Almacén: ${warehouse} ${escape(p.unit || "pza")}</span>
         </div>
         <div class="product-actions">
           <button class="icon-btn" data-action="edit" title="Editar"><i class="fas fa-pen"></i></button>
@@ -515,12 +519,14 @@ function openProductModal(id) {
   $("#prodDeleteBtn").hidden = isNew;
 
   $("#prodInitialStockField").hidden = !isNew;
+  $("#prodInitialWarehouseField").hidden = !isNew;
   $("#prodInitialStock").value = 0;
+  $("#prodInitialWarehouse").value = 0;
 
   const stockInfo = $("#prodStockInfo");
   stockInfo.hidden = isNew;
   if (!isNew) {
-    stockInfo.innerHTML = `<p class="field-hint"><i class="fas fa-circle-info"></i> Inventario actual: <b>${Number(p.stock) || 0} ${escape(p.unit || "pza")}</b>. Para agregar o retirar existencias usa el botón <i class="fas fa-boxes-stacked"></i> "Inventario" desde la lista de productos.</p>`;
+    stockInfo.innerHTML = `<p class="field-hint"><i class="fas fa-circle-info"></i> Inventario actual: <b>Barbería ${Number(p.stock) || 0}</b> · <b>Almacén ${Number(p.warehouseStock) || 0}</b> ${escape(p.unit || "pza")}. Para agregar o retirar existencias usa el botón <i class="fas fa-boxes-stacked"></i> "Inventario" desde la lista de productos.</p>`;
   }
 
   renderProductPhotos(p);
@@ -630,6 +636,7 @@ async function onProductFormSubmit(ev) {
       toast("Producto actualizado.", "success");
     } else {
       payload.initialStock = Number($("#prodInitialStock").value) || 0;
+      payload.initialWarehouseStock = Number($("#prodInitialWarehouse").value) || 0;
       payload.order = products.length;
       const created = await createProduct(payload);
       if (pendingPhotoFiles.length > 0) {
@@ -672,7 +679,8 @@ function openStockModal(productId) {
 
   $("#stockProductId").value = productId;
   $("#stockModalTitle").textContent = `Inventario · ${p.name}`;
-  $("#stockCurrentInfo").innerHTML = `<p class="field-hint">Existencia actual: <b>${Number(p.stock) || 0} ${escape(p.unit || "pza")}</b></p>`;
+  renderStockInfo(p);
+  $("#stockLocation").value = "barberia";
   $("#stockType").value = "entrada";
   $("#stockQty").value = "";
   $("#stockReason").value = "";
@@ -685,6 +693,10 @@ function openStockModal(productId) {
   });
 
   setTimeout(() => $("#stockQty").focus(), 50);
+}
+
+function renderStockInfo(p) {
+  $("#stockCurrentInfo").innerHTML = `<p class="field-hint">Existencia actual: <b>Barbería ${Number(p?.stock) || 0}</b> · <b>Almacén ${Number(p?.warehouseStock) || 0}</b> ${escape(p?.unit || "pza")}</p>`;
 }
 
 function closeStockModal() {
@@ -704,7 +716,7 @@ function renderStockHistory(rows) {
       <span class="stock-history-type is-${r.type === "salida" ? "salida" : "entrada"}">
         ${r.type === "salida" ? "−" : "+"}${r.quantity}
       </span>
-      <span>${escape(r.reason || "—")}</span>
+      <span>${escape(LOCATION_LABELS[r.location] || "Barbería")} · ${escape(r.reason || "—")}</span>
       <span>${new Date(r.createdAt).toLocaleDateString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short" })}</span>
     </div>
   `).join("");
@@ -714,6 +726,7 @@ async function onStockFormSubmit(ev) {
   ev.preventDefault();
   const productId = $("#stockProductId").value;
   const type = $("#stockType").value;
+  const location = $("#stockLocation").value;
   const qty = Number($("#stockQty").value);
   const reason = $("#stockReason").value.trim();
   if (!qty || qty <= 0) { toast("Ingresa una cantidad válida.", "error"); return; }
@@ -723,11 +736,22 @@ async function onStockFormSubmit(ev) {
   btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Guardando…`;
   try {
     const p = products.find((x) => x.id === productId);
-    const stockAfter = await adjustStock(productId, { type, quantity: qty, reason });
-    toast(type === "salida" ? "Salida registrada." : "Entrada registrada.", "success");
+    let after;
+    if (type === "traspaso") {
+      after = await transferStock(productId, { from: location, quantity: qty, reason });
+      toast("Traspaso registrado.", "success");
+    } else {
+      const stockAfter = await adjustStock(productId, { type, quantity: qty, reason, location });
+      after = { [location]: stockAfter };
+      toast(type === "salida" ? "Salida registrada." : "Entrada registrada.", "success");
+    }
     $("#stockQty").value = "";
     $("#stockReason").value = "";
-    $("#stockCurrentInfo").innerHTML = `<p class="field-hint">Existencia actual: <b>${stockAfter} ${escape(p?.unit || "pza")}</b></p>`;
+    renderStockInfo({
+      ...p,
+      stock: after.barberia ?? p?.stock,
+      warehouseStock: after.almacen ?? p?.warehouseStock,
+    });
   } catch (err) {
     toast(err.message || "Error registrando el movimiento.", "error");
   } finally {
@@ -988,7 +1012,7 @@ function renderPosItemList() {
       li.innerHTML = `
         <div>
           <div class="pos-item-name">${escape(p.name)}</div>
-          <div class="pos-item-sub">${disabled ? "Agotado" : `${stock} ${escape(p.unit || "pza")} disponibles`}</div>
+          <div class="pos-item-sub">${disabled ? "Agotado" : `${stock} ${escape(p.unit || "pza")} en barbería`}</div>
         </div>
         <div class="pos-item-price">${formatPrice(p.price)}</div>
       `;
