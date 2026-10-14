@@ -1,10 +1,11 @@
 // ============================================================
 // Cash register (Caja) data layer.
 // Collection: `transactions`, admin-only (never exposed publicly).
-// A sale is one Firestore transaction that both deducts product
-// stock and appends inventory movements + the sale record, so it
-// either fully commits or fully fails — never a partial sale with
-// stock silently out of sync.
+// A sale is one Firestore transaction that deducts the barbería level in
+// `inventory`, keeps the public products/{id}.inStock flag in sync, and
+// appends inventory movements + the sale record, so it either fully
+// commits or fully fails — never a partial sale with stock silently out
+// of sync. (Almacén stock is never sold directly.)
 // ============================================================
 
 import { FIREBASE_ENABLED } from "./firebase-config.js";
@@ -69,36 +70,57 @@ export async function sellCart(cartItems, payments, cashier, notes = "") {
   const paymentMethod = distinctMethods.size > 1 ? "mixto" : cleanPayments[0].method;
 
   await runTransaction(db, async (tx) => {
-    // 1. Read + validate stock for every product line first (Firestore
-    //    transactions require all reads before any writes).
+    // 1. Read + validate barbería stock for every product line first
+    //    (Firestore transactions require all reads before any writes).
     const productRefs = productItems.map((i) => doc(db, "products", i.refId));
-    const snaps = await Promise.all(productRefs.map((ref) => tx.get(ref)));
+    const invRefs = productItems.map((i) => doc(db, "inventory", i.refId));
+    const [productSnaps, invSnaps] = await Promise.all([
+      Promise.all(productRefs.map((ref) => tx.get(ref))),
+      Promise.all(invRefs.map((ref) => tx.get(ref))),
+    ]);
 
-    snaps.forEach((snap, idx) => {
-      const item = productItems[idx];
-      if (!snap.exists()) throw new Error(`"${item.name}" ya no existe.`);
-      const current = Number(snap.data().stock) || 0;
-      if (current < item.qty) {
-        throw new Error(`No hay suficiente inventario de "${item.name}" (quedan ${current}).`);
+    const wanted = new Map(); // same product on two cart lines → validate the sum
+    productItems.forEach((i) => wanted.set(i.refId, (wanted.get(i.refId) || 0) + Number(i.qty)));
+
+    productItems.forEach((item, idx) => {
+      if (!productSnaps[idx].exists()) throw new Error(`"${item.name}" ya no existe.`);
+      const shop = invSnaps[idx].exists() ? Number(invSnaps[idx].data().levels?.barberia) || 0 : 0;
+      if (shop < wanted.get(item.refId)) {
+        throw new Error(`No hay suficiente inventario de "${item.name}" en la barbería (quedan ${shop}).`);
       }
     });
 
-    // 2. Write stock deductions + movement log entries.
-    snaps.forEach((snap, idx) => {
-      const item = productItems[idx];
-      const current = Number(snap.data().stock) || 0;
-      const stockAfter = current - item.qty;
-      tx.update(productRefs[idx], { stock: stockAfter, updatedAt: nowIso() });
+    // 2. Write inventory deductions + movement log entries.
+    const done = new Set();
+    productItems.forEach((item, idx) => {
+      if (done.has(item.refId)) return;
+      done.add(item.refId);
+      const qty = wanted.get(item.refId);
+      const levels = invSnaps[idx].data().levels || {};
+      const shopAfter = (Number(levels.barberia) || 0) - qty;
+      const warehouse = Number(levels.almacen) || 0;
+      tx.update(invRefs[idx], {
+        levels: { barberia: shopAfter, almacen: warehouse },
+        updatedAt: nowIso(),
+      });
+      if (shopAfter + warehouse <= 0) {
+        // Only ever flips to "agotado" here — rules let a cashier do nothing else to a product.
+        tx.update(productRefs[idx], { inStock: false, updatedAt: nowIso() });
+      }
       const movementRef = doc(collection(db, "inventoryMovements"));
       tx.set(movementRef, {
         id: movementRef.id,
         productId: item.refId,
         productName: item.name,
         type: "salida",
-        quantity: item.qty,
-        stockAfter,
+        kind: "venta",
+        location: "barberia",
+        quantity: qty,
+        stockAfter: shopAfter,
         reason: "Venta",
         relatedTransactionId: txId,
+        byUid: cashier.uid,
+        byName: cashier.name || "",
         createdAt: nowIso(),
       });
     });
@@ -131,7 +153,7 @@ export async function sellCart(cartItems, payments, cashier, notes = "") {
 }
 
 /**
- * Reverses stock for a sale's product lines and marks it voided.
+ * Returns a sale's product lines to the barbería inventory and marks it voided.
  * Voiding is admin-only per firestore.rules, so `fsCtx` — if provided —
  * should come from an admin-authorized session (see users-store.js
  * withAdminAuthorization) when the caller signed in is a cashier.
@@ -148,26 +170,44 @@ export async function voidTransaction(transactionId, fsCtx = null, voidedByUid =
     const saleData = txSnap.data();
     if (saleData.voided) throw new Error("Esta venta ya estaba cancelada.");
 
-    const productItems = (saleData.items || []).filter((i) => i.kind === "product");
-    const productRefs = productItems.map((i) => doc(db, "products", i.refId));
-    const snaps = await Promise.all(productRefs.map((ref) => tx.get(ref)));
+    // Merge repeated lines of the same product so each inventory doc is touched once.
+    const qtyByProduct = new Map();
+    const nameByProduct = new Map();
+    (saleData.items || []).filter((i) => i.kind === "product").forEach((i) => {
+      qtyByProduct.set(i.refId, (qtyByProduct.get(i.refId) || 0) + Number(i.qty));
+      nameByProduct.set(i.refId, i.name);
+    });
+    const ids = Array.from(qtyByProduct.keys());
+    const productRefs = ids.map((id) => doc(db, "products", id));
+    const invRefs = ids.map((id) => doc(db, "inventory", id));
+    const [productSnaps, invSnaps] = await Promise.all([
+      Promise.all(productRefs.map((ref) => tx.get(ref))),
+      Promise.all(invRefs.map((ref) => tx.get(ref))),
+    ]);
 
-    snaps.forEach((snap, idx) => {
-      if (!snap.exists()) return; // product deleted since — nothing to restock
-      const item = productItems[idx];
-      const current = Number(snap.data().stock) || 0;
-      const stockAfter = current + item.qty;
-      tx.update(productRefs[idx], { stock: stockAfter, updatedAt: nowIso() });
+    ids.forEach((id, idx) => {
+      if (!productSnaps[idx].exists()) return; // product deleted since — nothing to restock
+      const qty = qtyByProduct.get(id);
+      const levels = invSnaps[idx].exists() ? invSnaps[idx].data().levels || {} : {};
+      const shopAfter = (Number(levels.barberia) || 0) + qty;
+      const warehouse = Number(levels.almacen) || 0;
+      const invData = { productId: id, levels: { barberia: shopAfter, almacen: warehouse }, updatedAt: nowIso() };
+      if (invSnaps[idx].exists()) tx.update(invRefs[idx], invData);
+      else tx.set(invRefs[idx], { ...invData, lowThreshold: 3 });
+      if (productSnaps[idx].data().inStock !== true) tx.update(productRefs[idx], { inStock: true, updatedAt: nowIso() });
       const movementRef = doc(collection(db, "inventoryMovements"));
       tx.set(movementRef, {
         id: movementRef.id,
-        productId: item.refId,
-        productName: item.name,
+        productId: id,
+        productName: nameByProduct.get(id),
         type: "entrada",
-        quantity: item.qty,
-        stockAfter,
+        kind: "cancelacion",
+        location: "barberia",
+        quantity: qty,
+        stockAfter: shopAfter,
         reason: "Cancelación de venta",
         relatedTransactionId: transactionId,
+        byUid: voidedByUid || null,
         createdAt: nowIso(),
       });
     });

@@ -34,7 +34,8 @@ function render(products) {
 
   grid.innerHTML = active.map((p) => {
     const photo = p.photos && p.photos[0] ? p.photos[0].url : null;
-    const stock = Number(p.stock) || 0;
+    // Quantities are staff-only (inventory); the catalog just says whether any is left.
+    const soldOut = p.inStock === false;
     return `
       <div class="col-12 col-md-6 col-lg-4">
         <a href="../producto.html?id=${encodeURIComponent(p.id)}" class="text-decoration-none">
@@ -48,7 +49,7 @@ function render(products) {
               ${p.brand ? `<div class="small text-secondary mb-2" style="font-family:'Montserrat';">${escapeHtml(p.brand)}${p.size ? ` · ${escapeHtml(p.size)}` : ""}</div>` : ""}
               ${p.description ? `<p class="mb-3 small" style="font-family:'Montserrat';">${escapeHtml(p.description)}</p>` : ""}
               <span class="badge rounded-pill text-bg-dark border border-warning px-3 py-2">${fmtPriceMxn(p.price)}</span>
-              ${stock <= 0 ? `<div class="small text-danger mt-2">Agotado</div>` : ""}
+              ${soldOut ? `<div class="small text-danger mt-2">Agotado</div>` : ""}
             </div>
           </div>
         </a>

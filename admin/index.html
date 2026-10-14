@@ -57,6 +57,7 @@
           <button class="tab is-active" data-tab="caja"      data-title="Caja"                 role="tab"><i class="fas fa-cash-register"></i> Caja</button>
           <button class="tab"           data-tab="servicios" data-title="Servicios y precios"  role="tab"><i class="fas fa-tag"></i> Servicios</button>
           <button class="tab"           data-tab="productos" data-title="Productos"            role="tab"><i class="fas fa-box"></i> Productos</button>
+          <button class="tab"           data-tab="inventario" data-title="Inventario"          role="tab"><i class="fas fa-boxes-stacked"></i> Inventario</button>
           <button class="tab"           data-tab="etiquetas" data-title="Etiquetas QR"         role="tab"><i class="fas fa-qrcode"></i> Etiquetas</button>
         </div>
         <div class="nav-group">
@@ -187,19 +188,94 @@
       </div>
     </section>
 
-    <!-- ─── Productos ─── -->
+    <!-- ─── Productos (catálogo) ─── -->
     <section class="panel" id="panel-productos" hidden>
       <div class="panel-head">
-        <h2 class="panel-title">Productos e inventario</h2>
+        <h2 class="panel-title">Productos</h2>
         <button class="btn btn-primary" id="addProductBtn"><i class="fas fa-plus"></i> Agregar producto</button>
       </div>
       <p class="panel-help">
-        Cada producto guarda su propio inventario y genera su código QR automáticamente.
-        Usa <i class="fas fa-boxes-stacked"></i> para registrar entradas/salidas y
-        <i class="fas fa-qrcode"></i> para ver e imprimir su etiqueta. Los cambios aquí se
-        guardan al instante, no requieren el botón "Guardar cambios".
+        Aquí vive el catálogo: nombre, precio, fotos y código QR
+        (<i class="fas fa-qrcode"></i> para ver e imprimir su etiqueta). Las existencias se
+        manejan en la pestaña <b>Inventario</b>. Los cambios aquí se guardan al instante,
+        no requieren el botón "Guardar cambios".
       </p>
       <ul class="products-grid" id="productsList"></ul>
+    </section>
+
+    <!-- ─── Inventario ─── -->
+    <section class="panel" id="panel-inventario" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">Inventario</h2>
+      </div>
+      <p class="panel-help">
+        <b>Barbería</b> es lo que hay en piso y se vende en caja (cada venta cobrada lo descuenta).
+        <b>Almacén</b> es la reserva en bodega: se traspasa a la barbería para poder venderla.
+      </p>
+
+      <div class="inv-migrate" id="invMigrateBanner" hidden>
+        <p><i class="fas fa-triangle-exclamation"></i>
+          <span id="invMigrateText"></span></p>
+        <button class="btn btn-primary btn-sm" id="invMigrateBtn"><i class="fas fa-right-left"></i> Migrar inventario</button>
+      </div>
+
+      <div class="inv-summary" id="invSummary"></div>
+
+      <div class="inv-toolbar">
+        <input type="search" id="invSearch" placeholder="Buscar producto…" />
+        <select id="invCategory"><option value="">Todas las categorías</option></select>
+        <select id="invFilter">
+          <option value="all">Todos</option>
+          <option value="restock">Por reabastecer</option>
+          <option value="shop-empty">Sin existencia en barbería</option>
+          <option value="out">Agotados</option>
+        </select>
+      </div>
+
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th class="num">Barbería</th>
+              <th class="num">Almacén</th>
+              <th class="num">Total</th>
+              <th>Estado</th>
+              <th class="inv-actions-col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="invRows"></tbody>
+        </table>
+      </div>
+
+      <h3 class="inv-subtitle">Historial de movimientos</h3>
+      <div class="inv-toolbar">
+        <select id="invMovLocation">
+          <option value="">Ambas ubicaciones</option>
+          <option value="barberia">Barbería</option>
+          <option value="almacen">Almacén</option>
+        </select>
+        <select id="invMovKind">
+          <option value="">Todos los tipos</option>
+          <option value="compra">Entradas</option>
+          <option value="merma">Salidas / mermas</option>
+          <option value="traspaso">Traspasos</option>
+          <option value="venta">Ventas</option>
+          <option value="cancelacion">Cancelaciones de venta</option>
+          <option value="conteo">Conteos físicos</option>
+          <option value="alta">Altas iniciales</option>
+        </select>
+        <input type="search" id="invMovSearch" placeholder="Buscar producto o motivo…" />
+      </div>
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr><th>Fecha</th><th>Producto</th><th>Ubicación</th><th>Movimiento</th><th class="num">Cambio</th><th class="num">Quedó</th><th>Motivo</th><th>Quién</th></tr>
+          </thead>
+          <tbody id="invMovRows"></tbody>
+        </table>
+      </div>
+      <p class="field-hint" id="invMovNote"></p>
     </section>
 
     <!-- ─── Etiquetas QR (bulk) ─── -->
@@ -453,14 +529,20 @@
           <span class="field-label">Costo (opcional)</span>
           <input type="number" id="prodCost" min="0" step="1" />
         </label>
-        <label class="field" id="prodInitialStockField">
-          <span class="field-label">Stock inicial</span>
+        <label class="field" data-new-only>
+          <span class="field-label">Inventario inicial · Barbería</span>
           <input type="number" id="prodInitialStock" min="0" step="1" value="0" />
+          <span class="field-hint">Lo que hay en piso y se vende en caja.</span>
         </label>
-        <label class="field">
+        <label class="field" data-new-only>
+          <span class="field-label">Inventario inicial · Almacén</span>
+          <input type="number" id="prodInitialWarehouse" min="0" step="1" value="0" />
+          <span class="field-hint">Reserva en bodega; se traspasa a la barbería.</span>
+        </label>
+        <label class="field" data-new-only>
           <span class="field-label">Avisar cuando queden</span>
           <input type="number" id="prodLowStock" min="0" step="1" value="3" />
-          <span class="field-hint">Alerta visual cuando el inventario llegue a esta cantidad o menos.</span>
+          <span class="field-hint">Alerta cuando la barbería llegue a esta cantidad o menos (se puede cambiar en Inventario).</span>
         </label>
         <label class="field">
           <span class="field-label">¿Activo?</span>
@@ -491,7 +573,6 @@
           <span class="field-label">Modo de uso</span>
           <textarea id="prodUsage" rows="2" maxlength="300" placeholder="Ej. Aplicar una cantidad pequeña sobre cabello húmedo y peinar."></textarea>
         </label>
-        <div class="field full" id="prodStockInfo" hidden></div>
 
         <div class="field full">
           <span class="field-label">Fotos</span>
@@ -524,17 +605,34 @@
         <label class="field">
           <span class="field-label">Movimiento</span>
           <select id="stockType">
-            <option value="entrada">Entrada (agregar)</option>
-            <option value="salida">Salida (retirar)</option>
+            <option value="entrada">Entrada (compra / reposición)</option>
+            <option value="salida">Salida (merma / ajuste)</option>
+            <option value="traspaso">Traspaso a la otra ubicación</option>
+            <option value="conteo">Conteo físico (fijar cantidad)</option>
           </select>
         </label>
         <label class="field">
-          <span class="field-label">Cantidad <span class="req">*</span></span>
-          <input type="number" id="stockQty" min="1" step="1" required />
+          <span class="field-label" id="stockLocationLabel">Ubicación</span>
+          <select id="stockLocation">
+            <option value="barberia">Barbería (caja)</option>
+            <option value="almacen">Almacén</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-label"><span id="stockQtyLabel">Cantidad</span> <span class="req">*</span></span>
+          <input type="number" id="stockQty" min="0" step="1" required />
+          <span class="field-hint" id="stockQtyHint"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">Avisar cuando queden (barbería)</span>
+          <span class="inv-threshold-row">
+            <input type="number" id="stockThreshold" min="0" step="1" />
+            <button type="button" class="btn btn-ghost btn-sm" id="stockThresholdBtn">Guardar</button>
+          </span>
         </label>
         <label class="field full">
           <span class="field-label">Motivo (opcional)</span>
-          <input type="text" id="stockReason" maxlength="120" placeholder="Ej. Compra a proveedor, merma, ajuste…" />
+          <input type="text" id="stockReason" maxlength="120" placeholder="Ej. Compra a proveedor, producto dañado, conteo mensual…" />
         </label>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" id="stockCancelBtn">Cancelar</button>

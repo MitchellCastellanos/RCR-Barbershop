@@ -65,7 +65,8 @@ async function render() {
 
   document.title = `${p.name} · RCR Barber Shop`;
   const photos = p.photos || [];
-  const stock = Number(p.stock) || 0;
+  // Quantities are staff-only (inventory); the catalog just says whether any is left.
+  const soldOut = p.inStock === false;
   const waHref = buildWa(waPhone, `Hola RCR, quiero preguntar por: ${p.name}`);
 
   root.innerHTML = `
@@ -104,8 +105,8 @@ async function render() {
                 <b>Modo de uso:</b> ${escapeHtml(p.usage)}
               </p>` : ""}
 
-            <p class="small ${stock <= 0 ? "text-danger" : "text-secondary"}" style="font-family:'Montserrat';">
-              ${stock <= 0 ? "Agotado por el momento." : "Disponible en la barbería."}
+            <p class="small ${soldOut ? "text-danger" : "text-secondary"}" style="font-family:'Montserrat';">
+              ${soldOut ? "Agotado por el momento." : "Disponible en la barbería."}
             </p>
             <p class="small text-secondary" style="font-family:'Montserrat';">
               <b>Disponibilidad y entrega únicamente en RCR Barber Shop.</b>
