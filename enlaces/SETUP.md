@@ -65,7 +65,7 @@ const firebaseConfig = {
 ## 5. Probar
 
 - **Página pública:** <https://www.rcr-barbershop.com/enlaces/>
-- **Panel admin:** <https://www.rcr-barbershop.com/enlaces/admin/>
+- **Panel admin:** <https://www.rcr-barbershop.com/admin/>
 
 Inicia sesión con el usuario que creaste en el paso 2. Edita servicios,
 horarios, enlaces, sube fotos a la galería → **Guardar cambios** → verás
@@ -100,3 +100,10 @@ Para una barbería:
 - **Storage**: gratis hasta 5 GB. Una galería de 50 fotos pesa ~50 MB.
 
 No deberías ver factura nunca.
+
+## Inventario
+
+El catálogo (`products`) y las existencias (`inventory`) son colecciones separadas.
+Si vienes de una versión anterior: **primero** publica `firestore.rules` y luego,
+en el panel → **Inventario**, pulsa **Migrar inventario** (una sola vez) para pasar
+las existencias que estaban dentro de cada producto.
