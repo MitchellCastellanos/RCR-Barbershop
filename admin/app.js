@@ -17,6 +17,7 @@ import {
   migrateLegacyInventory, levelOf, totalOf, stockStatus, movementLabel, movementDelta,
 } from "../enlaces/inventory-store.js";
 import { exportInventoryXlsx } from "../enlaces/xlsx-export.js";
+import { computeReport, exportSalesReportXlsx } from "../enlaces/reports-export.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
 import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
@@ -206,6 +207,10 @@ async function startApp() {
   ["#invMovLocation", "#invMovKind", "#invMovSearch"].forEach((sel) => $(sel).addEventListener("input", renderMovements));
   $("#invMigrateBtn").onclick = onMigrateInventory;
   $("#invExportBtn").onclick = onExportInventory;
+  $$("[data-rep-preset]").forEach((b) => { b.onclick = () => applyReportPreset(b.dataset.repPreset); });
+  ["#repFrom", "#repTo"].forEach((sel) => $(sel).addEventListener("change", loadReport));
+  $("#repBarber").addEventListener("change", renderReport);
+  $("#repExportBtn").onclick = onExportReport;
   $("#stockModalClose").onclick = closeStockModal;
   $("#stockCancelBtn").onclick = closeStockModal;
   $("#stockForm").addEventListener("submit", onStockFormSubmit);
@@ -528,6 +533,7 @@ function switchTab(name) {
   $$(".panel").forEach(p => p.hidden = p.id !== `panel-${name}`);
   setSidebarOpen(false);
   if (name === "inventario") startMovementsFeed();
+  if (name === "reportes") loadReport();
 }
 
 // ============================================================
@@ -1850,6 +1856,108 @@ async function loadCorte() {
     renderCorte();
   } catch (err) {
     $("#corteList").innerHTML = `<p class="field-hint">Error: ${escape(err.message)}</p>`;
+  }
+}
+
+// ---------- Reportes de ventas (admin) ----------
+let repRows = [];
+
+function ymdAddDays(ymd, days) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+function applyReportPreset(preset) {
+  const today = todayIso();
+  const [y, m, d] = today.split("-").map(Number);
+  const monthStart = `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-01`;
+  let from = today, to = today;
+  if (preset === "week") {
+    const dow = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7; // lunes = 0
+    from = ymdAddDays(today, -dow);
+  } else if (preset === "month") {
+    from = monthStart;
+  } else if (preset === "prevmonth") {
+    to = ymdAddDays(monthStart, -1);
+    from = `${to.slice(0, 7)}-01`;
+  } else if (preset === "last30") {
+    from = ymdAddDays(today, -29);
+  }
+  $("#repFrom").value = from;
+  $("#repTo").value = to;
+  loadReport();
+}
+
+function renderReportBarberOptions() {
+  const sel = $("#repBarber");
+  const current = sel.value || "all";
+  sel.innerHTML = `<option value="all">Todos</option>` +
+    allUsers.map((u) => `<option value="${u.uid}">${escape(u.displayName || u.email)}</option>`).join("");
+  sel.value = allUsers.some((u) => u.uid === current) ? current : "all";
+}
+
+async function loadReport() {
+  if (!isAdminRole()) return;
+  if (!$("#repFrom").value) $("#repFrom").value = ymdAddDays(todayIso(), -(Number(todayIso().slice(8)) - 1));
+  if (!$("#repTo").value) $("#repTo").value = todayIso();
+  renderReportBarberOptions();
+  const { startIso, endIso } = shopDayRange($("#repFrom").value, $("#repTo").value);
+  $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Cargando…</td></tr>`;
+  try {
+    commissionSettings = await fetchCommissionSettings();
+    repRows = await fetchTransactionsRange(startIso, endIso, null);
+    renderReport();
+  } catch (err) {
+    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Error: ${escape(err.message)}</td></tr>`;
+  }
+}
+
+function reportScopedRows() {
+  const uid = $("#repBarber").value;
+  return uid === "all" ? repRows : repRows.filter((r) => r.cashierUid === uid);
+}
+
+function renderReport() {
+  const rep = computeReport(reportScopedRows(), { users: allUsers, commission: commissionSettings, tz: SHOP_TZ });
+  const t = rep.totals;
+  const tile = (label, value) => `<div class="pos-report-tile"><div class="pos-report-tile-label">${label}</div><div class="pos-report-tile-value">${value}</div></div>`;
+  $("#repTotals").innerHTML =
+    tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) + tile("Ticket promedio", formatPrice(t.ticket)) +
+    tile("Servicios", formatPrice(t.serviceAmount)) + tile("Productos", formatPrice(t.productAmount)) +
+    tile("Comisiones", formatPrice(t.commission)) + tile("Neto barbería", formatPrice(t.net)) + tile("Canceladas", t.voided);
+  if (rep.barbers.length === 0) {
+    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Sin ventas en este rango.</td></tr>`;
+    return;
+  }
+  $("#repRows").innerHTML = rep.barbers.map((b) => `
+    <tr>
+      <td><div class="inv-name">${escape(b.name)}</div><div class="inv-sub">${b.daysWorked} día(s) · ${b.teamShare}% del equipo</div></td>
+      <td class="num">${b.sales}</td>
+      <td class="num"><b>${formatPrice(b.total)}</b></td>
+      <td class="num">${formatPrice(b.ticket)}</td>
+      <td class="num">${b.serviceUnits}</td>
+      <td class="num">${b.productUnits}</td>
+      <td class="num">${formatPrice(b.commission)}</td>
+      <td class="num">${b.voided}</td>
+    </tr>`).join("");
+}
+
+async function onExportReport() {
+  const btn = $("#repExportBtn");
+  btn.disabled = true;
+  try {
+    const uid = $("#repBarber").value;
+    const barber = allUsers.find((u) => u.uid === uid);
+    const n = await exportSalesReportXlsx({
+      rows: reportScopedRows(), users: allUsers, commission: commissionSettings, tz: SHOP_TZ,
+      from: $("#repFrom").value, to: $("#repTo").value,
+      barberLabel: barber ? (barber.displayName || barber.email) : "Todos",
+    });
+    toast(`Excel generado: ${n.sales} ventas, ${n.lines} líneas de detalle.`, "success");
+  } catch (err) {
+    toast("No se pudo exportar: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
   }
 }
 

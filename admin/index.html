@@ -55,6 +55,7 @@
         <div class="nav-group">
           <p class="nav-group-label">Operación</p>
           <button class="tab is-active" data-tab="caja"      data-title="Caja"                 role="tab"><i class="fas fa-cash-register"></i> Caja</button>
+          <button class="tab"           data-tab="reportes"  data-title="Reportes de ventas"   role="tab"><i class="fas fa-chart-line"></i> Reportes</button>
           <button class="tab"           data-tab="servicios" data-title="Servicios y precios"  role="tab"><i class="fas fa-tag"></i> Servicios</button>
           <button class="tab"           data-tab="productos" data-title="Productos"            role="tab"><i class="fas fa-box"></i> Productos</button>
           <button class="tab"           data-tab="inventario" data-title="Inventario"          role="tab"><i class="fas fa-boxes-stacked"></i> Inventario</button>
@@ -185,6 +186,58 @@
         <div class="pos-report-totals" id="corteTotals"></div>
         <div id="corteCommissionSummary" class="pos-commission-summary" hidden></div>
         <div id="corteList"></div>
+      </div>
+    </section>
+
+    <!-- ─── Reportes de ventas (admin) ─── -->
+    <section class="panel" id="panel-reportes" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">Reportes de ventas</h2>
+        <button class="btn btn-primary" id="repExportBtn"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+      </div>
+      <p class="panel-help">
+        Ventas por barbero (quien cobra es quien hizo el servicio), por día y por servicio o producto.
+        Las ventas canceladas no cuentan en los totales; aparecen marcadas en el detalle del Excel.
+      </p>
+      <div class="inv-toolbar">
+        <button type="button" class="btn btn-ghost btn-sm" data-rep-preset="today">Hoy</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-rep-preset="week">Esta semana</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-rep-preset="month">Este mes</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-rep-preset="prevmonth">Mes anterior</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-rep-preset="last30">Últimos 30 días</button>
+      </div>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <label class="field">
+          <span class="field-label">Desde</span>
+          <input type="date" id="repFrom" />
+        </label>
+        <label class="field">
+          <span class="field-label">Hasta</span>
+          <input type="date" id="repTo" />
+        </label>
+        <label class="field">
+          <span class="field-label">Barbero</span>
+          <select id="repBarber"><option value="all">Todos</option></select>
+        </label>
+      </div>
+      <div class="pos-report-totals" id="repTotals"></div>
+      <h3 class="inv-subtitle">Por barbero</h3>
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Barbero</th>
+              <th class="num">Ventas</th>
+              <th class="num">Total</th>
+              <th class="num">Ticket prom.</th>
+              <th class="num">Servicios</th>
+              <th class="num">Productos</th>
+              <th class="num">Comisión</th>
+              <th class="num">Cancel.</th>
+            </tr>
+          </thead>
+          <tbody id="repRows"></tbody>
+        </table>
       </div>
     </section>
 
