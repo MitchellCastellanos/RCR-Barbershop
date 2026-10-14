@@ -1238,3 +1238,7 @@ body:not(.is-admin) .nav-group-label { display: none; }
 }
 .inv-threshold-row { display: flex; gap: 8px; }
 .inv-threshold-row input { flex: 1; min-width: 0; }
+
+/* Native dropdown menus: keep options readable (dark bg, light text) */
+select { color-scheme: dark; }
+select option { background: #1a1a1a; color: #f2f2f2; }
