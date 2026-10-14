@@ -16,6 +16,7 @@ import {
   initInventory, adjustStock, transferStock, countStock, setLowThreshold, deleteInventory,
   migrateLegacyInventory, levelOf, totalOf, stockStatus, movementLabel, movementDelta,
 } from "../enlaces/inventory-store.js";
+import { exportInventoryXlsx } from "../enlaces/xlsx-export.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
 import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
@@ -204,6 +205,7 @@ async function startApp() {
   ["#invSearch", "#invCategory", "#invFilter"].forEach((sel) => $(sel).addEventListener("input", renderInventory));
   ["#invMovLocation", "#invMovKind", "#invMovSearch"].forEach((sel) => $(sel).addEventListener("input", renderMovements));
   $("#invMigrateBtn").onclick = onMigrateInventory;
+  $("#invExportBtn").onclick = onExportInventory;
   $("#stockModalClose").onclick = closeStockModal;
   $("#stockCancelBtn").onclick = closeStockModal;
   $("#stockForm").addEventListener("submit", onStockFormSubmit);
@@ -1172,6 +1174,21 @@ async function onMigrateInventory() {
     toast(`${n} producto(s) migrados a Inventario.`, "success");
   } catch (err) {
     toast("No se pudo migrar: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function onExportInventory() {
+  const btn = $("#invExportBtn");
+  btn.disabled = true;
+  try {
+    const n = await exportInventoryXlsx({
+      products, inventory, services: workingData?.services || [], movements: allMovements,
+    });
+    toast(`Excel generado: ${n.products} productos y ${n.services} servicios.`, "success");
+  } catch (err) {
+    toast("No se pudo exportar: " + err.message, "error");
   } finally {
     btn.disabled = false;
   }
