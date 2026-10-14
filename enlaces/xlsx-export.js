@@ -9,7 +9,7 @@ import { LOCATION_LABELS, STATUS_LABELS, levelOf, totalOf, stockStatus, movement
 const XLSX_LIB_URL = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
 
 let _xlsxPromise = null;
-function getXlsx() {
+export function getXlsx() {
   if (!_xlsxPromise) _xlsxPromise = import(XLSX_LIB_URL).then((m) => m.default || m);
   return _xlsxPromise;
 }
