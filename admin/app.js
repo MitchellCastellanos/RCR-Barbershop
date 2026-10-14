@@ -1693,8 +1693,9 @@ function renderCorte() {
     const prof = admin ? allUsers.find((u) => u.uid === uid) : myProfile;
     return sum + (prof ? pettyCashOf(prof) : 0) * days;
   }, 0));
-  const cashDue = r2(pettyCash + efectivo);
   commissionTotal = r2(commissionTotal);
+  // El cajero toma su comisión del efectivo del día, así que se descuenta de lo que deja.
+  const cashDue = r2(pettyCash + efectivo - commissionTotal);
   const { servicePercent, productAmount } = commissionSettings;
   const serviceCommission = r2(serviceBase * servicePercent / 100);
   const productCommission = r2(productUnits * productAmount);
@@ -1713,6 +1714,7 @@ function renderCorte() {
     <div class="pos-commission-title" style="margin-top:6px;">Efectivo a dejar en caja</div>
     <div class="pos-commission-line"><span>Caja chica${days > 1 ? ` (${days} días)` : ""}</span><strong>${formatPrice(pettyCash)}</strong></div>
     <div class="pos-commission-line"><span>Efectivo cobrado</span><strong>${formatPrice(r2(efectivo))}</strong></div>
+    <div class="pos-commission-line"><span>Menos comisión (la toma del efectivo)</span><strong>−${formatPrice(commissionTotal)}</strong></div>
     <div class="pos-commission-line pos-commission-total"><span>Total a dejar en caja</span><strong>${formatPrice(cashDue)}</strong></div>
     <div class="pos-commission-title" style="margin-top:6px;">Ventas por tipo</div>
     <div class="pos-commission-line"><span>Servicios</span><strong>${formatPrice(r2(serviceBase))}</strong></div>
