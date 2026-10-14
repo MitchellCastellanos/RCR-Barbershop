@@ -321,7 +321,7 @@ function applyRoleUI() {
   const admin = isAdminRole();
   document.body.classList.toggle("is-admin", admin);
   $$(".tab").forEach((t) => {
-    const allowed = admin || t.dataset.tab === "caja";
+    const allowed = admin || t.dataset.tab === "caja" || t.dataset.tab === "reportes";
     t.hidden = !allowed;
   });
   $$(".nav-group").forEach((g) => {
@@ -331,8 +331,16 @@ function applyRoleUI() {
 
   $("#userBadge").textContent = `${myProfile.displayName || myProfile.email} · ${admin ? "Administrador" : "Cajero"}`;
 
-  // A cashier only ever sees their own corte — no filter, no "todos".
+  // A cashier only ever sees their own corte/reportes — no filter, no "todos", no export.
   $("#corteCashierField").hidden = !admin;
+  $("#repBarberField").hidden = !admin;
+  $("#repExportBtn").hidden = !admin;
+  $("#repHelpAdmin").hidden = !admin;
+  $("#repHelpCashier").hidden = admin;
+  $("#repBarberTitle").hidden = !admin;
+  $("#repBarberWrap").hidden = !admin;
+  $("#repDayTitle").hidden = admin;
+  $("#repDayWrap").hidden = admin;
   if (!admin) corteCashierFilter = myProfile.uid;
 }
 
@@ -1897,34 +1905,58 @@ function renderReportBarberOptions() {
 }
 
 async function loadReport() {
-  if (!isAdminRole()) return;
   if (!$("#repFrom").value) $("#repFrom").value = ymdAddDays(todayIso(), -(Number(todayIso().slice(8)) - 1));
   if (!$("#repTo").value) $("#repTo").value = todayIso();
-  renderReportBarberOptions();
+  const admin = isAdminRole();
+  if (admin) renderReportBarberOptions();
   const { startIso, endIso } = shopDayRange($("#repFrom").value, $("#repTo").value);
-  $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Cargando…</td></tr>`;
+  const msg = (text) => {
+    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">${text}</td></tr>`;
+    $("#repDayRows").innerHTML = `<tr><td colspan="4" class="empty">${text}</td></tr>`;
+  };
+  msg("Cargando…");
   try {
     commissionSettings = await fetchCommissionSettings();
-    repRows = await fetchTransactionsRange(startIso, endIso, null);
+    // Cashiers must query by their own uid (see fetchTransactionsRange / firestore.rules).
+    repRows = await fetchTransactionsRange(startIso, endIso, admin ? null : myProfile.uid);
     renderReport();
   } catch (err) {
-    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Error: ${escape(err.message)}</td></tr>`;
+    msg("Error: " + escape(err.message));
   }
 }
 
 function reportScopedRows() {
+  if (!isAdminRole()) return repRows;
   const uid = $("#repBarber").value;
   return uid === "all" ? repRows : repRows.filter((r) => r.cashierUid === uid);
 }
 
 function renderReport() {
-  const rep = computeReport(reportScopedRows(), { users: allUsers, commission: commissionSettings, tz: SHOP_TZ });
+  const admin = isAdminRole();
+  const rep = computeReport(reportScopedRows(), { users: admin ? allUsers : [myProfile], commission: commissionSettings, tz: SHOP_TZ });
   const t = rep.totals;
   const tile = (label, value) => `<div class="pos-report-tile"><div class="pos-report-tile-label">${label}</div><div class="pos-report-tile-value">${value}</div></div>`;
-  $("#repTotals").innerHTML =
-    tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) + tile("Ticket promedio", formatPrice(t.ticket)) +
-    tile("Servicios", formatPrice(t.serviceAmount)) + tile("Productos", formatPrice(t.productAmount)) +
-    tile("Comisiones", formatPrice(t.commission)) + tile("Neto barbería", formatPrice(t.net)) + tile("Canceladas", t.voided);
+  if (admin) {
+    $("#repTotals").innerHTML =
+      tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) + tile("Ticket promedio", formatPrice(t.ticket)) +
+      tile("Servicios", formatPrice(t.serviceAmount)) + tile("Productos", formatPrice(t.productAmount)) +
+      tile("Comisiones", formatPrice(t.commission)) + tile("Neto barbería", formatPrice(t.net)) + tile("Canceladas", t.voided);
+  } else {
+    const workedDays = rep.days.length;
+    $("#repTotals").innerHTML =
+      tile("Tu comisión", formatPrice(t.commission)) + tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) +
+      tile("Ticket promedio", formatPrice(t.ticket)) + tile("Servicios", `${t.serviceUnits} · ${formatPrice(t.serviceAmount)}`) +
+      tile("Productos", `${t.productUnits} · ${formatPrice(t.productAmount)}`) +
+      tile("Comisión por día", formatPrice(workedDays ? Math.round(t.commission / workedDays * 100) / 100 : 0)) + tile("Canceladas", t.voided);
+    $("#repDayRows").innerHTML = rep.days.length === 0
+      ? `<tr><td colspan="4" class="empty">Sin ventas en este rango.</td></tr>`
+      : rep.days.slice().reverse().map((d) => {
+          const [y, m, dd] = d.ymd.split("-").map(Number);
+          const label = new Date(Date.UTC(y, m - 1, dd, 12)).toLocaleDateString("es-MX", { timeZone: "UTC", weekday: "short", day: "2-digit", month: "short" });
+          return `<tr><td>${escape(label)}</td><td class="num">${d.sales}</td><td class="num"><b>${formatPrice(d.total)}</b></td><td class="num">${formatPrice(d.commission)}</td></tr>`;
+        }).join("");
+    return;
+  }
   if (rep.barbers.length === 0) {
     $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Sin ventas en este rango.</td></tr>`;
     return;
@@ -1943,6 +1975,7 @@ function renderReport() {
 }
 
 async function onExportReport() {
+  if (!isAdminRole()) return;
   const btn = $("#repExportBtn");
   btn.disabled = true;
   try {

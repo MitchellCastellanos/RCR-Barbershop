@@ -193,9 +193,12 @@
     <section class="panel" id="panel-reportes" hidden>
       <div class="panel-head">
         <h2 class="panel-title">Reportes de ventas</h2>
-        <button class="btn btn-primary" id="repExportBtn"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+        <button class="btn btn-primary" id="repExportBtn" hidden><i class="fas fa-file-excel"></i> Exportar Excel</button>
       </div>
-      <p class="panel-help">
+      <p class="panel-help" id="repHelpCashier" hidden>
+        Tus ventas y lo que has ganado de comisión en el periodo que elijas. Las ventas canceladas no cuentan.
+      </p>
+      <p class="panel-help" id="repHelpAdmin">
         Ventas por barbero (quien cobra es quien hizo el servicio), por día y por servicio o producto.
         Las ventas canceladas no cuentan en los totales; aparecen marcadas en el detalle del Excel.
       </p>
@@ -215,14 +218,14 @@
           <span class="field-label">Hasta</span>
           <input type="date" id="repTo" />
         </label>
-        <label class="field">
+        <label class="field" id="repBarberField">
           <span class="field-label">Barbero</span>
           <select id="repBarber"><option value="all">Todos</option></select>
         </label>
       </div>
       <div class="pos-report-totals" id="repTotals"></div>
-      <h3 class="inv-subtitle">Por barbero</h3>
-      <div class="inv-table-wrap">
+      <h3 class="inv-subtitle" id="repBarberTitle">Por barbero</h3>
+      <div class="inv-table-wrap" id="repBarberWrap">
         <table class="inv-table">
           <thead>
             <tr>
@@ -237,6 +240,21 @@
             </tr>
           </thead>
           <tbody id="repRows"></tbody>
+        </table>
+      </div>
+
+      <h3 class="inv-subtitle" id="repDayTitle" hidden>Por día</h3>
+      <div class="inv-table-wrap" id="repDayWrap" hidden>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Día</th>
+              <th class="num">Ventas</th>
+              <th class="num">Total</th>
+              <th class="num">Tu comisión</th>
+            </tr>
+          </thead>
+          <tbody id="repDayRows"></tbody>
         </table>
       </div>
     </section>

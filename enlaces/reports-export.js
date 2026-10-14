@@ -67,9 +67,9 @@ export function computeReport(rows, { users = [], commission, tz }) {
     b.sales++; b.total += Number(r.total) || 0; b.commission += comm; b.days.add(ymd);
     totals.sales++; totals.total += Number(r.total) || 0; totals.commission += comm;
 
-    if (!days.has(ymd)) days.set(ymd, { ymd, sales: 0, total: 0, byBarber: new Map() });
+    if (!days.has(ymd)) days.set(ymd, { ymd, sales: 0, total: 0, commission: 0, byBarber: new Map() });
     const d = days.get(ymd);
-    d.sales++; d.total += Number(r.total) || 0;
+    d.sales++; d.total += Number(r.total) || 0; d.commission += comm;
     d.byBarber.set(b.key, (d.byBarber.get(b.key) || 0) + (Number(r.total) || 0));
 
     paymentLines(r).forEach((p) => {
@@ -119,7 +119,7 @@ export function computeReport(rows, { users = [], commission, tz }) {
     return { ...it, amount: r2(it.amount), topSeller: top ? nameByKey.get(top.key) || "—" : "", topUnits: top ? top.units : 0 };
   }).sort((a, b) => (a.kind === b.kind ? b.amount - a.amount : a.kind < b.kind ? 1 : -1));
 
-  const dayList = [...days.values()].sort((a, b) => (a.ymd < b.ymd ? -1 : 1));
+  const dayList = [...days.values()].map((d) => ({ ...d, total: r2(d.total), commission: r2(d.commission) })).sort((a, b) => (a.ymd < b.ymd ? -1 : 1));
 
   return { totals, methods, barbers: barberList, days: dayList, items: itemList, nameByKey, valid, voided };
 }
