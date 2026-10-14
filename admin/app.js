@@ -1802,14 +1802,6 @@ function shopDayRange(fromYmd, toYmd) {
 
 let lastCorteRows = [];
 
-// Días (en hora de México) que cubre el rango seleccionado, mínimo 1
-function corteDayCount() {
-  const from = $("#corteFrom").value, to = $("#corteTo").value;
-  if (!from || !to) return 1;
-  const [fy, fm, fd] = from.split("-").map(Number);
-  const [ty, tm, td] = to.split("-").map(Number);
-  return Math.max(1, Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000) + 1);
-}
 
 function renderCorteCashierOptions() {
   const sel = $("#corteCashier");
@@ -1910,22 +1902,21 @@ function renderCorte() {
   });
   const r2 = (n) => Math.round(n * 100) / 100;
 
-  // Caja chica: cada cajero arranca cada día con su monto; lo que debe dejar en
+  // Caja chica: cada cajero arranca con su monto (siempre el mismo, no se acumula); lo que debe dejar en
   // caja es esa caja chica (por día del rango) + el efectivo que cobró.
-  const days = corteDayCount();
   const pettyUids = new Set(valid.map((r) => r.cashierUid));
   if (!admin) pettyUids.add(myProfile.uid);
   else if (corteCashierFilter !== "all") pettyUids.add(corteCashierFilter);
   const pettyCash = r2([...pettyUids].reduce((sum, uid) => {
     const prof = admin ? allUsers.find((u) => u.uid === uid) : myProfile;
-    return sum + (prof ? pettyCashOf(prof) : 0) * days;
+    return sum + (prof ? pettyCashOf(prof) : 0);
   }, 0));
   commissionTotal = r2(commissionTotal);
   // El cajero toma su comisión del efectivo del día, así que se descuenta de lo que deja.
   const cashDue = r2(pettyCash + efectivo - commissionTotal);
   const dueByCashier = [...pettyUids].map((uid) => {
     const prof = admin ? allUsers.find((u) => u.uid === uid) : myProfile;
-    const petty = (prof ? pettyCashOf(prof) : 0) * days;
+    const petty = prof ? pettyCashOf(prof) : 0;
     const cash = cashByUid.get(uid) || 0, comm = commByUid.get(uid) || 0;
     return { name: prof?.displayName || prof?.email || "—", petty, cash, comm, due: r2(petty + cash - comm) };
   }).sort((a, b) => a.name.localeCompare(b.name));
@@ -1945,7 +1936,7 @@ function renderCorte() {
     <div class="pos-commission-line"><span>Transferencia</span><strong>${formatPrice(r2(transferencia))}</strong></div>
     <div class="pos-commission-line pos-commission-total"><span>Total cobrado</span><strong>${formatPrice(r2(efectivo + tarjeta + transferencia))}</strong></div>
     <div class="pos-commission-title" style="margin-top:6px;">Efectivo a dejar en caja</div>
-    <div class="pos-commission-line"><span>Caja chica${days > 1 ? ` (${days} días)` : ""}</span><strong>${formatPrice(pettyCash)}</strong></div>
+    <div class="pos-commission-line"><span>Caja chica</span><strong>${formatPrice(pettyCash)}</strong></div>
     <div class="pos-commission-line"><span>Efectivo cobrado</span><strong>${formatPrice(r2(efectivo))}</strong></div>
     <div class="pos-commission-line"><span>Menos comisión (la toma del efectivo)</span><strong>−${formatPrice(commissionTotal)}</strong></div>
     <div class="pos-commission-line pos-commission-total"><span>Total a dejar en caja</span><strong>${formatPrice(cashDue)}</strong></div>
