@@ -1670,9 +1670,14 @@ function renderCorte() {
 
   let commissionTotal = 0, serviceBase = 0, productUnits = 0, productBase = 0;
   const byCashier = new Map();
+  const cashByUid = new Map(), commByUid = new Map();
   valid.forEach((r) => {
     const c = saleCommission(r, commissionSettings);
     commissionTotal += c;
+    commByUid.set(r.cashierUid, (commByUid.get(r.cashierUid) || 0) + c);
+    paymentLines(r).forEach((p) => {
+      if (p.method !== "tarjeta" && p.method !== "transferencia") cashByUid.set(r.cashierUid, (cashByUid.get(r.cashierUid) || 0) + (Number(p.amount) || 0));
+    });
     byCashier.set(r.cashierName || "—", (byCashier.get(r.cashierName || "—") || 0) + c);
     (r.items || []).forEach((i) => {
       if (i.kind === "product") {
@@ -1696,6 +1701,12 @@ function renderCorte() {
   commissionTotal = r2(commissionTotal);
   // El cajero toma su comisión del efectivo del día, así que se descuenta de lo que deja.
   const cashDue = r2(pettyCash + efectivo - commissionTotal);
+  const dueByCashier = [...pettyUids].map((uid) => {
+    const prof = admin ? allUsers.find((u) => u.uid === uid) : myProfile;
+    const petty = (prof ? pettyCashOf(prof) : 0) * days;
+    const cash = cashByUid.get(uid) || 0, comm = commByUid.get(uid) || 0;
+    return { name: prof?.displayName || prof?.email || "—", petty, cash, comm, due: r2(petty + cash - comm) };
+  }).sort((a, b) => a.name.localeCompare(b.name));
   const { servicePercent, productAmount } = commissionSettings;
   const serviceCommission = r2(serviceBase * servicePercent / 100);
   const productCommission = r2(productUnits * productAmount);
@@ -1716,6 +1727,9 @@ function renderCorte() {
     <div class="pos-commission-line"><span>Efectivo cobrado</span><strong>${formatPrice(r2(efectivo))}</strong></div>
     <div class="pos-commission-line"><span>Menos comisión (la toma del efectivo)</span><strong>−${formatPrice(commissionTotal)}</strong></div>
     <div class="pos-commission-line pos-commission-total"><span>Total a dejar en caja</span><strong>${formatPrice(cashDue)}</strong></div>
+    ${admin && corteCashierFilter === "all" && dueByCashier.length > 1 ? `
+    <div class="pos-commission-title" style="margin-top:6px;">Efectivo a dejar por cajero</div>
+    ${dueByCashier.map((c) => `<div class="pos-commission-line"><span>${escape(c.name)}: ${formatPrice(r2(c.petty))} caja chica + ${formatPrice(r2(c.cash))} efectivo − ${formatPrice(r2(c.comm))} comisión</span><strong>${formatPrice(c.due)}</strong></div>`).join("")}` : ""}
     <div class="pos-commission-title" style="margin-top:6px;">Ventas por tipo</div>
     <div class="pos-commission-line"><span>Servicios</span><strong>${formatPrice(r2(serviceBase))}</strong></div>
     <div class="pos-commission-line"><span>Productos (${productUnits} ${productUnits === 1 ? "pieza" : "piezas"})</span><strong>${formatPrice(r2(productBase))}</strong></div>
