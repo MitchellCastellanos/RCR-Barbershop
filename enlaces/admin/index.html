@@ -371,13 +371,19 @@
           <input type="number" id="prodCost" min="0" step="1" />
         </label>
         <label class="field" id="prodInitialStockField">
-          <span class="field-label">Stock inicial</span>
+          <span class="field-label">Stock inicial · Barbería</span>
           <input type="number" id="prodInitialStock" min="0" step="1" value="0" />
+          <span class="field-hint">Lo que hay en piso y se vende en caja.</span>
+        </label>
+        <label class="field" id="prodInitialWarehouseField">
+          <span class="field-label">Stock inicial · Almacén</span>
+          <input type="number" id="prodInitialWarehouse" min="0" step="1" value="0" />
+          <span class="field-hint">Reserva en bodega; se traspasa a la barbería.</span>
         </label>
         <label class="field">
           <span class="field-label">Avisar cuando queden</span>
           <input type="number" id="prodLowStock" min="0" step="1" value="3" />
-          <span class="field-hint">Alerta visual cuando el inventario llegue a esta cantidad o menos.</span>
+          <span class="field-hint">Alerta visual cuando el inventario de la barbería llegue a esta cantidad o menos.</span>
         </label>
         <label class="field">
           <span class="field-label">¿Activo?</span>
@@ -439,10 +445,18 @@
         <input type="hidden" id="stockProductId" />
         <div class="field full" id="stockCurrentInfo"></div>
         <label class="field">
+          <span class="field-label">Ubicación</span>
+          <select id="stockLocation">
+            <option value="barberia">Barbería (caja)</option>
+            <option value="almacen">Almacén</option>
+          </select>
+        </label>
+        <label class="field">
           <span class="field-label">Movimiento</span>
           <select id="stockType">
             <option value="entrada">Entrada (agregar)</option>
-            <option value="salida">Salida (retirar)</option>
+            <option value="salida">Salida / merma (retirar)</option>
+            <option value="traspaso">Traspaso a la otra ubicación</option>
           </select>
         </label>
         <label class="field">

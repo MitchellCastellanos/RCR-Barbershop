@@ -17,6 +17,19 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+// Two stock locations per product:
+//   "barberia" -> `stock` field (what is on the shop floor; the cash register
+//                 sells from and deducts this one — kept as `stock` so every
+//                 existing sale/void/storefront path keeps working untouched)
+//   "almacen"  -> `warehouseStock` field (back storage; never sold directly,
+//                 it must be transferred to the barbería first)
+export const LOCATIONS = ["barberia", "almacen"];
+export const LOCATION_LABELS = { barberia: "Barbería", almacen: "Almacén" };
+
+export function stockField(location) {
+  return location === "almacen" ? "warehouseStock" : "stock";
+}
+
 // ---------- Products: read ----------
 
 /**
@@ -61,12 +74,14 @@ export async function fetchProduct(id) {
 
 // ---------- Products: write ----------
 
-/** Creates a new product. `initialStock` seeds the stock + a movement log entry. */
+/** Creates a new product. `initialStock` seeds the barbería stock and
+ *  `initialWarehouseStock` the almacén stock, each with a movement log entry. */
 export async function createProduct(input) {
   if (!FIREBASE_ENABLED) throw new Error("Firebase no está habilitado.");
   const { db, doc, setDoc, collection } = await getFirestore();
   const id = makeId();
   const initialStock = Math.max(0, Number(input.initialStock) || 0);
+  const initialWarehouse = Math.max(0, Number(input.initialWarehouseStock) || 0);
   const product = {
     id,
     name: input.name || "",
@@ -80,6 +95,7 @@ export async function createProduct(input) {
     cost: input.cost === "" || input.cost == null ? "" : Number(input.cost),
     unit: input.unit || "pieza",
     stock: initialStock,
+    warehouseStock: initialWarehouse,
     lowStockThreshold: Number(input.lowStockThreshold) || 3,
     active: input.active !== false,
     order: Number(input.order) || 0,
@@ -88,15 +104,17 @@ export async function createProduct(input) {
     updatedAt: nowIso(),
   };
   await setDoc(doc(db, "products", id), product);
-  if (initialStock > 0) {
+  for (const [location, qty] of [["barberia", initialStock], ["almacen", initialWarehouse]]) {
+    if (qty <= 0) continue;
     const movementRef = doc(collection(db, "inventoryMovements"));
     await setDoc(movementRef, {
       id: movementRef.id,
       productId: id,
       productName: product.name,
       type: "entrada",
-      quantity: initialStock,
-      stockAfter: initialStock,
+      location,
+      quantity: qty,
+      stockAfter: qty,
       reason: "Alta inicial",
       createdAt: nowIso(),
     });
@@ -104,12 +122,13 @@ export async function createProduct(input) {
   return product;
 }
 
-/** Updates product fields. Never touches `stock` — use adjustStock() for that. */
+/** Updates product fields. Never touches stock — use adjustStock()/transferStock(). */
 export async function updateProduct(id, patch) {
   if (!FIREBASE_ENABLED) throw new Error("Firebase no está habilitado.");
   const { db, doc, updateDoc } = await getFirestore();
   const clean = { ...patch, updatedAt: nowIso() };
   delete clean.stock;
+  delete clean.warehouseStock;
   delete clean.id;
   delete clean.createdAt;
   await updateDoc(doc(db, "products", id), clean);
@@ -122,15 +141,17 @@ export async function deleteProduct(id) {
 }
 
 /**
- * Adds or removes stock atomically and appends an entry to the movement log.
- * type: "entrada" | "salida" | "ajuste" (ajuste behaves like entrada/salida
- * depending on sign, callers pass the resolved type).
+ * Adds or removes stock at one location atomically and appends an entry to
+ * the movement log.
+ * type: "entrada" | "salida"; location: "barberia" (default) | "almacen".
  */
-export async function adjustStock(productId, { type, quantity, reason }) {
+export async function adjustStock(productId, { type, quantity, reason, location = "barberia" }) {
   if (!FIREBASE_ENABLED) throw new Error("Firebase no está habilitado.");
   const { db, doc, collection, runTransaction } = await getFirestore();
   const qty = Math.abs(Number(quantity) || 0);
   if (qty <= 0) throw new Error("La cantidad debe ser mayor a cero.");
+  if (!LOCATIONS.includes(location)) throw new Error("Ubicación inválida.");
+  const field = stockField(location);
 
   const productRef = doc(db, "products", productId);
   const movementRef = doc(collection(db, "inventoryMovements"));
@@ -139,17 +160,18 @@ export async function adjustStock(productId, { type, quantity, reason }) {
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(productRef);
     if (!snap.exists()) throw new Error("El producto ya no existe.");
-    const current = Number(snap.data().stock) || 0;
+    const current = Number(snap.data()[field]) || 0;
     stockAfter = type === "salida" ? current - qty : current + qty;
     if (stockAfter < 0) {
-      throw new Error(`No hay suficiente inventario disponible (quedan ${current}).`);
+      throw new Error(`No hay suficiente inventario en ${LOCATION_LABELS[location]} (quedan ${current}).`);
     }
-    tx.update(productRef, { stock: stockAfter, updatedAt: nowIso() });
+    tx.update(productRef, { [field]: stockAfter, updatedAt: nowIso() });
     tx.set(movementRef, {
       id: movementRef.id,
       productId,
       productName: snap.data().name || "",
       type,
+      location,
       quantity: qty,
       stockAfter,
       reason: reason || "",
@@ -158,6 +180,63 @@ export async function adjustStock(productId, { type, quantity, reason }) {
   });
 
   return stockAfter;
+}
+
+/**
+ * Moves stock between locations in one transaction (e.g. almacén → barbería
+ * to restock the shelves). Logs a "salida" at the origin and an "entrada" at
+ * the destination, both flagged `transfer: true`.
+ * Returns { barberia, almacen } stock after the move.
+ */
+export async function transferStock(productId, { from, quantity, reason }) {
+  if (!FIREBASE_ENABLED) throw new Error("Firebase no está habilitado.");
+  if (!LOCATIONS.includes(from)) throw new Error("Ubicación inválida.");
+  const to = from === "almacen" ? "barberia" : "almacen";
+  const { db, doc, collection, runTransaction } = await getFirestore();
+  const qty = Math.abs(Number(quantity) || 0);
+  if (qty <= 0) throw new Error("La cantidad debe ser mayor a cero.");
+
+  const productRef = doc(db, "products", productId);
+  const outRef = doc(collection(db, "inventoryMovements"));
+  const inRef = doc(collection(db, "inventoryMovements"));
+  const result = {};
+
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(productRef);
+    if (!snap.exists()) throw new Error("El producto ya no existe.");
+    const data = snap.data();
+    const fromBefore = Number(data[stockField(from)]) || 0;
+    const toBefore = Number(data[stockField(to)]) || 0;
+    if (fromBefore < qty) {
+      throw new Error(`No hay suficiente inventario en ${LOCATION_LABELS[from]} (quedan ${fromBefore}).`);
+    }
+    const fromAfter = fromBefore - qty;
+    const toAfter = toBefore + qty;
+    tx.update(productRef, {
+      [stockField(from)]: fromAfter,
+      [stockField(to)]: toAfter,
+      updatedAt: nowIso(),
+    });
+    const base = {
+      productId,
+      productName: data.name || "",
+      quantity: qty,
+      transfer: true,
+      createdAt: nowIso(),
+    };
+    tx.set(outRef, {
+      ...base, id: outRef.id, type: "salida", location: from, stockAfter: fromAfter,
+      reason: reason || `Traspaso a ${LOCATION_LABELS[to]}`,
+    });
+    tx.set(inRef, {
+      ...base, id: inRef.id, type: "entrada", location: to, stockAfter: toAfter,
+      reason: reason || `Traspaso desde ${LOCATION_LABELS[from]}`,
+    });
+    result[from] = fromAfter;
+    result[to] = toAfter;
+  });
+
+  return result;
 }
 
 /** Live history of movements for one product, most recent first. */
