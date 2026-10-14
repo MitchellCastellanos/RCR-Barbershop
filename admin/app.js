@@ -9,8 +9,13 @@ import { FIREBASE_ENABLED } from "../enlaces/firebase-config.js";
 import { fetchData, saveData, getAuth, getStorage } from "../enlaces/data-store.js";
 import {
   subscribeProducts, createProduct, updateProduct, deleteProduct,
-  adjustStock, subscribeMovements, uploadProductPhoto, deleteProductPhoto,
+  uploadProductPhoto, deleteProductPhoto,
 } from "../enlaces/products-store.js";
+import {
+  LOCATION_LABELS, STATUS_LABELS, subscribeInventory, subscribeMovements, subscribeAllMovements,
+  initInventory, adjustStock, transferStock, countStock, setLowThreshold, deleteInventory,
+  migrateLegacyInventory, levelOf, totalOf, stockStatus, movementLabel, movementDelta,
+} from "../enlaces/inventory-store.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
 import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
@@ -39,6 +44,12 @@ let unsubProducts = null;
 let pendingPhotoFiles = [];    // File objects queued before a new product's first save
 let stockMovementsUnsub = null;
 let qrCurrentProduct = null;
+
+// Inventory (separate from the catalog): productId -> inventory doc
+let inventory = new Map();
+let unsubInventory = null;
+let allMovements = [];         // latest movements across products (admin, Inventario tab)
+let unsubAllMovements = null;
 
 // Caja (POS)
 let posCart = [];
@@ -187,6 +198,12 @@ async function startApp() {
   });
   $("#prodPhotoInput").addEventListener("change", onProductPhotoFiles);
 
+  $("#stockType").addEventListener("change", syncStockFormMode);
+  $("#stockLocation").addEventListener("change", syncStockFormMode);
+  $("#stockThresholdBtn").onclick = onSaveThreshold;
+  ["#invSearch", "#invCategory", "#invFilter"].forEach((sel) => $(sel).addEventListener("input", renderInventory));
+  ["#invMovLocation", "#invMovKind", "#invMovSearch"].forEach((sel) => $(sel).addEventListener("input", renderMovements));
+  $("#invMigrateBtn").onclick = onMigrateInventory;
   $("#stockModalClose").onclick = closeStockModal;
   $("#stockCancelBtn").onclick = closeStockModal;
   $("#stockForm").addEventListener("submit", onStockFormSubmit);
@@ -508,6 +525,7 @@ function switchTab(name) {
   });
   $$(".panel").forEach(p => p.hidden = p.id !== `panel-${name}`);
   setSidebarOpen(false);
+  if (name === "inventario") startMovementsFeed();
 }
 
 // ============================================================
@@ -708,8 +726,17 @@ async function initProducts() {
       (a.order ?? 0) - (b.order ?? 0) || String(a.name).localeCompare(String(b.name))
     );
     renderProducts();
+    renderInventory();
     renderPosItemList();
     renderLabelPickList();
+  });
+  // Every signed-in user needs inventory: the cash register sells from it.
+  unsubInventory = await subscribeInventory((list) => {
+    inventory = new Map(list.map((i) => [i.productId, i]));
+    refreshOpenStockModal();
+    renderProducts();
+    renderInventory();
+    renderPosItemList();
   });
 }
 
@@ -724,8 +751,8 @@ function renderProducts() {
     const li = document.createElement("li");
     li.className = "product-card" + (p.active === false ? " is-inactive" : "");
     const photo = p.photos && p.photos[0] ? p.photos[0].url : null;
-    const stock = Number(p.stock) || 0;
-    const low = stock <= (Number(p.lowStockThreshold) || 0);
+    const inv = inventory.get(p.id);
+    const status = stockStatus(inv);
     li.innerHTML = `
       <div class="product-thumb">
         ${photo ? `<img src="${escapeAttr(photo)}" alt="" loading="lazy" />` : `<i class="fas fa-box"></i>`}
@@ -735,17 +762,15 @@ function renderProducts() {
         ${p.category ? `<div class="product-category">${escape(p.category)}</div>` : ""}
         <div class="product-meta">
           <span class="product-price">${formatPrice(p.price)}</span>
-          <span class="stock-chip ${low ? "is-low" : ""}">${stock <= 0 ? "Agotado" : `${stock} ${escape(p.unit || "pza")}`}</span>
+          <span class="stock-chip ${status === "ok" ? "" : "is-low"}" title="Se administra en Inventario">${status === "ok" ? `${totalOf(inv)} ${escape(p.unit || "pza")}` : STATUS_LABELS[status]}</span>
         </div>
         <div class="product-actions">
           <button class="icon-btn" data-action="edit" title="Editar"><i class="fas fa-pen"></i></button>
-          <button class="icon-btn" data-action="stock" title="Inventario"><i class="fas fa-boxes-stacked"></i></button>
           <button class="icon-btn" data-action="qr" title="Etiqueta QR"><i class="fas fa-qrcode"></i></button>
         </div>
       </div>
     `;
     li.querySelector('[data-action="edit"]').onclick = () => openProductModal(p.id);
-    li.querySelector('[data-action="stock"]').onclick = () => openStockModal(p.id);
     li.querySelector('[data-action="qr"]').onclick = () => openQrModal(p.id);
     list.appendChild(li);
   });
@@ -765,7 +790,7 @@ function openProductModal(id) {
   $("#prodUnit").value = p?.unit || "pieza";
   $("#prodPrice").value = p?.price ?? "";
   $("#prodCost").value = p?.cost ?? "";
-  $("#prodLowStock").value = p?.lowStockThreshold ?? 3;
+  $("#prodLowStock").value = 3;
   $("#prodActive").value = p?.active === false ? "false" : "true";
   $("#prodDesc").value = p?.description || "";
   $("#prodBrand").value = p?.brand || "";
@@ -774,14 +799,9 @@ function openProductModal(id) {
   $("#prodUsage").value = p?.usage || "";
   $("#prodDeleteBtn").hidden = isNew;
 
-  $("#prodInitialStockField").hidden = !isNew;
+  $$("#productForm [data-new-only]").forEach((el) => { el.hidden = !isNew; });
   $("#prodInitialStock").value = 0;
-
-  const stockInfo = $("#prodStockInfo");
-  stockInfo.hidden = isNew;
-  if (!isNew) {
-    stockInfo.innerHTML = `<p class="field-hint"><i class="fas fa-circle-info"></i> Inventario actual: <b>${Number(p.stock) || 0} ${escape(p.unit || "pza")}</b>. Para agregar o retirar existencias usa el botón <i class="fas fa-boxes-stacked"></i> "Inventario" desde la lista de productos.</p>`;
-  }
+  $("#prodInitialWarehouse").value = 0;
 
   renderProductPhotos(p);
 
@@ -872,7 +892,6 @@ async function onProductFormSubmit(ev) {
     unit: $("#prodUnit").value.trim() || "pieza",
     price: Number(priceVal),
     cost: $("#prodCost").value === "" ? "" : Number($("#prodCost").value),
-    lowStockThreshold: Number($("#prodLowStock").value) || 0,
     active: $("#prodActive").value === "true",
     description: $("#prodDesc").value.trim(),
     brand: $("#prodBrand").value.trim(),
@@ -889,9 +908,13 @@ async function onProductFormSubmit(ev) {
       await updateProduct(id, payload);
       toast("Producto actualizado.", "success");
     } else {
-      payload.initialStock = Number($("#prodInitialStock").value) || 0;
       payload.order = products.length;
       const created = await createProduct(payload);
+      await initInventory(created.id, {
+        barberia: $("#prodInitialStock").value,
+        almacen: $("#prodInitialWarehouse").value,
+        lowThreshold: $("#prodLowStock").value,
+      }, actorOf());
       if (pendingPhotoFiles.length > 0) {
         const uploaded = [];
         for (const file of pendingPhotoFiles) uploaded.push(await uploadProductPhoto(created.id, file));
@@ -918,6 +941,7 @@ async function onProductDelete() {
       if (photo.path) { try { await deleteProductPhoto(photo.path); } catch (_) { /* best effort */ } }
     }
     await deleteProduct(id);
+    try { await deleteInventory(id); } catch (_) { /* best effort — the movement log is kept */ }
     toast("Producto eliminado.", "success");
     closeProductModal();
   } catch (err) {
@@ -926,16 +950,31 @@ async function onProductDelete() {
 }
 
 // ---------- Inventory ----------
-function openStockModal(productId) {
+function actorOf() {
+  return { uid: myProfile.uid, name: myProfile.displayName || myProfile.email };
+}
+
+function unitOf(p) { return escape(p?.unit || "pza"); }
+
+function stockInfoHtml(p, inv) {
+  return `<p class="field-hint">Existencia actual: <b>Barbería ${levelOf(inv, "barberia")}</b> · <b>Almacén ${levelOf(inv, "almacen")}</b> · Total ${totalOf(inv)} ${unitOf(p)}</p>`;
+}
+
+function openStockModal(productId, type = "entrada", location = "barberia") {
   const p = products.find((x) => x.id === productId);
   if (!p) return;
+  const inv = inventory.get(productId);
 
   $("#stockProductId").value = productId;
   $("#stockModalTitle").textContent = `Inventario · ${p.name}`;
-  $("#stockCurrentInfo").innerHTML = `<p class="field-hint">Existencia actual: <b>${Number(p.stock) || 0} ${escape(p.unit || "pza")}</b></p>`;
-  $("#stockType").value = "entrada";
+  $("#stockCurrentInfo").innerHTML = stockInfoHtml(p, inv);
+  $("#stockType").value = type;
+  // Traspaso defaults to the natural direction: almacén → barbería.
+  $("#stockLocation").value = type === "traspaso" ? "almacen" : location;
   $("#stockQty").value = "";
   $("#stockReason").value = "";
+  $("#stockThreshold").value = inv?.lowThreshold ?? 3;
+  syncStockFormMode();
   $("#stockModal").hidden = false;
 
   renderStockHistory([]);
@@ -947,11 +986,51 @@ function openStockModal(productId) {
   setTimeout(() => $("#stockQty").focus(), 50);
 }
 
+/** Keeps the open inventory modal's header in sync with the live inventory feed. */
+function refreshOpenStockModal() {
+  if ($("#stockModal").hidden) return;
+  const id = $("#stockProductId").value;
+  $("#stockCurrentInfo").innerHTML = stockInfoHtml(products.find((x) => x.id === id), inventory.get(id));
+}
+
 function closeStockModal() {
   $("#stockModal").hidden = true;
   $("#stockForm").reset();
   if (stockMovementsUnsub) { stockMovementsUnsub(); stockMovementsUnsub = null; }
 }
+
+/** Adapts labels/hints to the selected movement (entrada/salida/traspaso/conteo). */
+function syncStockFormMode() {
+  const type = $("#stockType").value;
+  const loc = $("#stockLocation").value;
+  const other = loc === "almacen" ? "barberia" : "almacen";
+  $("#stockLocationLabel").textContent = type === "traspaso" ? "Sale de" : "Ubicación";
+  $("#stockQtyLabel").textContent = type === "conteo" ? "Cantidad contada" : "Cantidad";
+  $("#stockQty").min = type === "conteo" ? "0" : "1";
+  const hints = {
+    entrada: "Suma esta cantidad a la ubicación elegida.",
+    salida: "Resta esta cantidad (producto dañado, uso interno, ajuste).",
+    traspaso: `Pasa de ${LOCATION_LABELS[loc]} a ${LOCATION_LABELS[other]}.`,
+    conteo: "Lo que realmente hay en el estante. El sistema registra la diferencia.",
+  };
+  $("#stockQtyHint").textContent = hints[type] || "";
+}
+
+async function onSaveThreshold() {
+  const productId = $("#stockProductId").value;
+  try {
+    const n = await setLowThreshold(productId, $("#stockThreshold").value, actorOf());
+    toast(`Alerta de bajo stock: ${n}.`, "success");
+  } catch (err) {
+    toast(err.message || "No se pudo guardar.", "error");
+  }
+}
+
+function fmtDateTime(iso) {
+  return new Date(iso).toLocaleString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtDelta(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n); }
 
 function renderStockHistory(rows) {
   const el = $("#stockHistory");
@@ -959,41 +1038,184 @@ function renderStockHistory(rows) {
     el.innerHTML = `<p class="field-hint">Sin movimientos registrados aún.</p>`;
     return;
   }
-  el.innerHTML = rows.map((r) => `
+  el.innerHTML = rows.map((r) => {
+    const d = movementDelta(r);
+    return `
     <div class="stock-history-row">
-      <span class="stock-history-type is-${r.type === "salida" ? "salida" : "entrada"}">
-        ${r.type === "salida" ? "−" : "+"}${r.quantity}
-      </span>
-      <span>${escape(r.reason || "—")}</span>
+      <span class="stock-history-type is-${d < 0 ? "salida" : "entrada"}">${fmtDelta(d)}</span>
+      <span>${escape(LOCATION_LABELS[r.location] || "Barbería")} · ${escape(movementLabel(r))}${r.reason && r.kind !== "venta" ? ` · ${escape(r.reason)}` : ""}</span>
       <span>${new Date(r.createdAt).toLocaleDateString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short" })}</span>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 }
 
 async function onStockFormSubmit(ev) {
   ev.preventDefault();
   const productId = $("#stockProductId").value;
   const type = $("#stockType").value;
+  const location = $("#stockLocation").value;
   const qty = Number($("#stockQty").value);
   const reason = $("#stockReason").value.trim();
-  if (!qty || qty <= 0) { toast("Ingresa una cantidad válida.", "error"); return; }
+  if (type === "conteo") {
+    if ($("#stockQty").value === "" || !Number.isInteger(qty) || qty < 0) { toast("Captura la cantidad contada.", "error"); return; }
+  } else if (!qty || qty <= 0) { toast("Ingresa una cantidad válida.", "error"); return; }
 
   const btn = $("#stockSubmitBtn");
   btn.disabled = true;
   btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Guardando…`;
   try {
-    const p = products.find((x) => x.id === productId);
-    const stockAfter = await adjustStock(productId, { type, quantity: qty, reason });
-    toast(type === "salida" ? "Salida registrada." : "Entrada registrada.", "success");
+    const actor = actorOf();
+    if (type === "traspaso") {
+      await transferStock(productId, { from: location, quantity: qty, reason }, actor);
+      toast("Traspaso registrado.", "success");
+    } else if (type === "conteo") {
+      const { before, after } = await countStock(productId, { location, counted: qty, reason }, actor);
+      toast(before === after ? "Conteo registrado: sin diferencia." : `Conteo registrado: ${fmtDelta(after - before)}.`, "success");
+    } else {
+      await adjustStock(productId, { type, quantity: qty, reason, location }, actor);
+      toast(type === "salida" ? "Salida registrada." : "Entrada registrada.", "success");
+    }
     $("#stockQty").value = "";
     $("#stockReason").value = "";
-    $("#stockCurrentInfo").innerHTML = `<p class="field-hint">Existencia actual: <b>${stockAfter} ${escape(p?.unit || "pza")}</b></p>`;
   } catch (err) {
     toast(err.message || "Error registrando el movimiento.", "error");
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-check"></i> Registrar`;
   }
+}
+
+// ---------- Inventario tab (admin) ----------
+const STATUS_CLASS = { ok: "", bajo: "is-warn", "sin-barberia": "is-warn", agotado: "is-low", "sin-inventario": "is-low" };
+
+function legacyProducts() {
+  return products.filter((p) => !inventory.has(p.id) && ((Number(p.stock) || 0) > 0 || (Number(p.warehouseStock) || 0) > 0));
+}
+
+function renderInventory() {
+  const rowsEl = $("#invRows");
+  if (!rowsEl || !isAdminRole()) return;
+
+  // Banner: products whose numbers still live in the old per-product fields.
+  const legacy = legacyProducts();
+  $("#invMigrateBanner").hidden = legacy.length === 0;
+  $("#invMigrateText").textContent =
+    `${legacy.length} producto(s) todavía tienen sus existencias en el formato anterior. Migra para que aparezcan en Inventario y en la caja.`;
+
+  // Category filter options (keep the current selection).
+  const catSel = $("#invCategory");
+  const cats = Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort();
+  const curCat = catSel.value;
+  catSel.innerHTML = `<option value="">Todas las categorías</option>` + cats.map((c) => `<option value="${escapeAttr(c)}">${escape(c)}</option>`).join("");
+  catSel.value = cats.includes(curCat) ? curCat : "";
+
+  const q = $("#invSearch").value.trim().toLowerCase();
+  const filter = $("#invFilter").value;
+  const cat = catSel.value;
+
+  const counts = { out: 0, restock: 0 };
+  products.forEach((p) => {
+    const st = stockStatus(inventory.get(p.id));
+    if (st === "agotado") counts.out++;
+    if (st === "agotado" || st === "bajo" || st === "sin-barberia") counts.restock++;
+  });
+  $("#invSummary").innerHTML = `
+    <div class="inv-tile"><b>${products.length}</b><span>Productos</span></div>
+    <div class="inv-tile ${counts.restock ? "is-warn" : ""}"><b>${counts.restock}</b><span>Por reabastecer</span></div>
+    <div class="inv-tile ${counts.out ? "is-low" : ""}"><b>${counts.out}</b><span>Agotados</span></div>`;
+
+  const list = products.filter((p) => {
+    const inv = inventory.get(p.id);
+    const st = stockStatus(inv);
+    if (q && !`${p.name} ${p.brand || ""} ${p.category || ""}`.toLowerCase().includes(q)) return false;
+    if (cat && p.category !== cat) return false;
+    if (filter === "restock") return st === "agotado" || st === "bajo" || st === "sin-barberia" || st === "sin-inventario";
+    if (filter === "shop-empty") return levelOf(inv, "barberia") <= 0;
+    if (filter === "out") return st === "agotado" || st === "sin-inventario";
+    return true;
+  });
+
+  if (list.length === 0) {
+    rowsEl.innerHTML = `<tr><td colspan="6" class="empty">${products.length ? "Sin resultados con esos filtros." : "Aún no hay productos."}</td></tr>`;
+    return;
+  }
+  rowsEl.innerHTML = list.map((p) => {
+    const inv = inventory.get(p.id);
+    const st = stockStatus(inv);
+    return `
+      <tr data-id="${escapeAttr(p.id)}">
+        <td><div class="inv-name">${escape(p.name || "(sin nombre)")}</div>${p.category ? `<div class="inv-sub">${escape(p.category)}</div>` : ""}</td>
+        <td class="num">${levelOf(inv, "barberia")}</td>
+        <td class="num">${levelOf(inv, "almacen")}</td>
+        <td class="num"><b>${totalOf(inv)}</b> <span class="inv-sub">${unitOf(p)}</span></td>
+        <td><span class="stock-chip ${STATUS_CLASS[st]}">${STATUS_LABELS[st]}</span></td>
+        <td class="inv-actions-col">
+          <button class="icon-btn" data-act="entrada" title="Entrada"><i class="fas fa-plus"></i></button>
+          <button class="icon-btn" data-act="salida" title="Salida / merma"><i class="fas fa-minus"></i></button>
+          <button class="icon-btn" data-act="traspaso" title="Traspasar almacén → barbería"><i class="fas fa-right-left"></i></button>
+          <button class="icon-btn" data-act="conteo" title="Conteo físico"><i class="fas fa-clipboard-check"></i></button>
+        </td>
+      </tr>`;
+  }).join("");
+  $$("#invRows tr[data-id]").forEach((tr) => {
+    $$("button[data-act]", tr).forEach((btn) => {
+      btn.onclick = () => openStockModal(tr.dataset.id, btn.dataset.act);
+    });
+  });
+}
+
+async function onMigrateInventory() {
+  const btn = $("#invMigrateBtn");
+  btn.disabled = true;
+  try {
+    const n = await migrateLegacyInventory(legacyProducts(), inventory);
+    toast(`${n} producto(s) migrados a Inventario.`, "success");
+  } catch (err) {
+    toast("No se pudo migrar: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function startMovementsFeed() {
+  if (!isAdminRole() || unsubAllMovements) return;
+  unsubAllMovements = await subscribeAllMovements((rows) => {
+    allMovements = rows;
+    renderMovements();
+  });
+}
+
+function renderMovements() {
+  const rowsEl = $("#invMovRows");
+  if (!rowsEl) return;
+  const loc = $("#invMovLocation").value;
+  const kind = $("#invMovKind").value;
+  const q = $("#invMovSearch").value.trim().toLowerCase();
+  const rows = allMovements.filter((m) => {
+    if (loc && (m.location || "barberia") !== loc) return false;
+    if (kind && m.kind !== kind) return false;
+    if (q && !`${m.productName} ${m.reason || ""}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  $("#invMovNote").textContent = allMovements.length >= 300 ? "Mostrando los 300 movimientos más recientes." : "";
+  if (rows.length === 0) {
+    rowsEl.innerHTML = `<tr><td colspan="8" class="empty">Sin movimientos.</td></tr>`;
+    return;
+  }
+  rowsEl.innerHTML = rows.map((m) => {
+    const d = movementDelta(m);
+    return `
+      <tr>
+        <td>${escape(fmtDateTime(m.createdAt))}</td>
+        <td>${escape(m.productName || "—")}</td>
+        <td>${escape(LOCATION_LABELS[m.location] || "Barbería")}</td>
+        <td>${escape(movementLabel(m))}</td>
+        <td class="num inv-delta is-${d < 0 ? "salida" : "entrada"}">${fmtDelta(d)}</td>
+        <td class="num">${m.stockAfter ?? "—"}</td>
+        <td>${escape(m.kind === "venta" || m.kind === "cancelacion" ? "" : (m.reason || ""))}</td>
+        <td>${escape(m.byName || "")}</td>
+      </tr>`;
+  }).join("");
 }
 
 // ---------- QR labels ----------
@@ -1241,14 +1463,14 @@ function renderPosItemList() {
       return;
     }
     active.forEach((p) => {
-      const stock = Number(p.stock) || 0;
+      const stock = levelOf(inventory.get(p.id), "barberia");
       const disabled = stock <= 0;
       const li = document.createElement("li");
       li.className = "pos-item-row" + (disabled ? " is-disabled" : "");
       li.innerHTML = `
         <div>
           <div class="pos-item-name">${escape(p.name)}</div>
-          <div class="pos-item-sub">${disabled ? "Agotado" : `${stock} ${escape(p.unit || "pza")} disponibles`}</div>
+          <div class="pos-item-sub">${disabled ? "Agotado" : `${stock} ${escape(p.unit || "pza")} en barbería`}</div>
         </div>
         <div class="pos-item-price">${formatPrice(p.price)}</div>
       `;
@@ -1532,8 +1754,8 @@ function onScanResult(text) {
   const p = products.find((x) => x.id === id);
   closePosScanModal();
   if (!p) { toast("No se encontró ese producto.", "error"); return; }
-  const stock = Number(p.stock) || 0;
-  if (stock <= 0) { toast(`"${p.name}" está agotado.`, "error"); return; }
+  const stock = levelOf(inventory.get(p.id), "barberia");
+  if (stock <= 0) { toast(`"${p.name}" está agotado en la barbería.`, "error"); return; }
   addToCart({ kind: "product", refId: p.id, name: p.name, unitPrice: Number(p.price) || 0, maxQty: stock });
   toast(`"${p.name}" agregado a la venta.`, "success");
 }

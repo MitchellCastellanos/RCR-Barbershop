@@ -58,22 +58,38 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Products: public read (storefront + QR landing page). Admin can
-    // change anything (name/price/etc). A signed-in cashier may only
-    // touch `stock` (and only downward) — that's the write a sale makes
-    // when it deducts inventory; it can never change price or metadata.
+    // Product catalog: public read (storefront + QR landing page). Only
+    // the admin edits it. The one thing a signed-in cashier may do is flip
+    // `inStock` to false — the write a sale makes when it sells the last
+    // unit. They can never touch price or any other metadata.
     match /products/{productId} {
       allow read: if true;
       allow create, delete: if isAdmin();
       allow update: if isAdmin()
         || (isActiveUser()
-            && diffKeys().hasOnly(['stock', 'updatedAt'])
-            && request.resource.data.stock is number
-            && request.resource.data.stock <= resource.data.stock);
+            && diffKeys().hasOnly(['inStock', 'updatedAt'])
+            && request.resource.data.inStock == false);
     }
 
-    // Inventory movement log: admin manages stock adjustments; cashiers
-    // only append the "salida" entry a sale generates. The log itself is
+    // Inventory levels (staff-only; quantities never reach the public site).
+    // Admin manages everything. A cashier may only lower the barbería level
+    // — that's what a sale does — and can never touch almacén or the alert
+    // threshold.
+    match /inventory/{productId} {
+      allow read: if isActiveUser();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isActiveUser()
+            && diffKeys().hasOnly(['levels', 'updatedAt'])
+            && request.resource.data.levels.keys().hasOnly(['barberia', 'almacen'])
+            && request.resource.data.levels.almacen == resource.data.levels.almacen
+            && request.resource.data.levels.barberia is number
+            && request.resource.data.levels.barberia >= 0
+            && request.resource.data.levels.barberia <= resource.data.levels.barberia);
+    }
+
+    // Inventory movement log: admin records stock changes; cashiers only
+    // append the "venta" entry a sale generates. The log itself is
     // append-only — nobody edits or deletes past entries.
     match /inventoryMovements/{movementId} {
       allow read: if isSignedIn();
