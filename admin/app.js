@@ -17,7 +17,7 @@ import {
   migrateLegacyInventory, levelOf, totalOf, stockStatus, movementLabel, movementDelta,
 } from "../enlaces/inventory-store.js";
 import { exportInventoryXlsx } from "../enlaces/xlsx-export.js";
-import { computeReport, exportSalesReportXlsx } from "../enlaces/reports-export.js";
+import { computeReport, exportSalesReportXlsx, isCutService } from "../enlaces/reports-export.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
 import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
@@ -184,6 +184,7 @@ async function startApp() {
   $("#svcCancelBtn").onclick = closeServiceModal;
   $("#serviceForm").addEventListener("submit", onServiceFormSubmit);
   $("#svcDeleteBtn").onclick = onServiceDelete;
+  $("#svcName").addEventListener("input", renderServiceKindHint);
   $("#serviceModal").addEventListener("click", (e) => {
     if (e.target.id === "serviceModal") closeServiceModal();
   });
@@ -682,9 +683,20 @@ function openServiceModal(id) {
   $("#svcNote").value = svc.note || "";
   $("#svcActive").value = svc.active === false ? "false" : "true";
   $("#svcDeleteBtn").hidden = isNew;
+  renderServiceKindHint();
 
   $("#serviceModal").hidden = false;
   setTimeout(() => $("#svcName").focus(), 50);
+}
+
+/** Tells whoever is naming a service how the sales reports will count it. */
+function renderServiceKindHint() {
+  const name = $("#svcName").value.trim();
+  const el = $("#svcKindHint");
+  if (!name) { el.textContent = ""; return; }
+  el.textContent = isCutService(name)
+    ? "En reportes se contará como: CORTE"
+    : "En reportes se contará como: servicio ADICIONAL";
 }
 
 function closeServiceModal() {
@@ -1230,7 +1242,7 @@ function renderMovements() {
   });
   $("#invMovNote").textContent = allMovements.length >= 300 ? "Mostrando los 300 movimientos más recientes." : "";
   if (rows.length === 0) {
-    rowsEl.innerHTML = `<tr><td colspan="8" class="empty">Sin movimientos.</td></tr>`;
+    rowsEl.innerHTML = `<tr><td colspan="9" class="empty">Sin movimientos.</td></tr>`;
     return;
   }
   rowsEl.innerHTML = rows.map((m) => {
@@ -1911,7 +1923,7 @@ async function loadReport() {
   if (admin) renderReportBarberOptions();
   const { startIso, endIso } = shopDayRange($("#repFrom").value, $("#repTo").value);
   const msg = (text) => {
-    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">${text}</td></tr>`;
+    $("#repRows").innerHTML = `<tr><td colspan="9" class="empty">${text}</td></tr>`;
     $("#repDayRows").innerHTML = `<tr><td colspan="4" class="empty">${text}</td></tr>`;
   };
   msg("Cargando…");
@@ -1945,7 +1957,7 @@ function renderReport() {
     const workedDays = rep.days.length;
     $("#repTotals").innerHTML =
       tile("Tu comisión", formatPrice(t.commission)) + tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) +
-      tile("Ticket promedio", formatPrice(t.ticket)) + tile("Servicios", `${t.serviceUnits} · ${formatPrice(t.serviceAmount)}`) +
+      tile("Ticket promedio", formatPrice(t.ticket)) + tile("Cortes", t.cutUnits) + tile("Servicios adicionales", `${t.extraUnits} (${t.extraShare}%)`) +
       tile("Productos", `${t.productUnits} · ${formatPrice(t.productAmount)}`) +
       tile("Comisión por día", formatPrice(workedDays ? Math.round(t.commission / workedDays * 100) / 100 : 0)) + tile("Canceladas", t.voided);
     $("#repDayRows").innerHTML = rep.days.length === 0
@@ -1958,7 +1970,7 @@ function renderReport() {
     return;
   }
   if (rep.barbers.length === 0) {
-    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Sin ventas en este rango.</td></tr>`;
+    $("#repRows").innerHTML = `<tr><td colspan="9" class="empty">Sin ventas en este rango.</td></tr>`;
     return;
   }
   $("#repRows").innerHTML = rep.barbers.map((b) => `
@@ -1967,7 +1979,8 @@ function renderReport() {
       <td class="num">${b.sales}</td>
       <td class="num"><b>${formatPrice(b.total)}</b></td>
       <td class="num">${formatPrice(b.ticket)}</td>
-      <td class="num">${b.serviceUnits}</td>
+      <td class="num">${b.cutUnits}</td>
+      <td class="num">${b.extraUnits} <span class="inv-sub">${b.extraShare}%</span></td>
       <td class="num">${b.productUnits}</td>
       <td class="num">${formatPrice(b.commission)}</td>
       <td class="num">${b.voided}</td>

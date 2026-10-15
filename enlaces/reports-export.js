@@ -20,6 +20,10 @@ function fmts(tz) {
   };
 }
 
+/** The base service is the haircut; everything else a barber sells is an "adicional" (barba, ceja, etc.).
+ *  Matched by name since services are free-text — a combo named "Corte y barba" counts as a corte. */
+export const isCutService = (name) => /corte/i.test(String(name || ""));
+
 const lineAmount = (i) => r2((Number(i.unitPrice) || 0) * (Number(i.qty) || 0));
 const isProduct = (i) => i.kind === "product";
 
@@ -49,6 +53,7 @@ export function computeReport(rows, { users = [], commission, tz }) {
       barbers.set(key, {
         key, name: nameOf.get(r.cashierUid) || r.cashierName || "—",
         sales: 0, total: 0, serviceUnits: 0, serviceAmount: 0, productUnits: 0, productAmount: 0,
+        cutUnits: 0, extraUnits: 0, services: new Map(),
         commission: 0, voided: 0, voidedAmount: 0, days: new Set(),
       });
     }
@@ -58,7 +63,7 @@ export function computeReport(rows, { users = [], commission, tz }) {
   const methods = { efectivo: 0, tarjeta: 0, transferencia: 0 };
   const days = new Map();   // ymd -> { sales, byBarber: Map(key -> amount), total }
   const items = new Map();  // kind|name -> { kind, name, units, amount, byBarber: Map(key -> units) }
-  const totals = { sales: 0, total: 0, serviceUnits: 0, serviceAmount: 0, productUnits: 0, productAmount: 0, commission: 0 };
+  const totals = { sales: 0, total: 0, cutUnits: 0, extraUnits: 0, serviceUnits: 0, serviceAmount: 0, productUnits: 0, productAmount: 0, commission: 0 };
 
   valid.forEach((r) => {
     const b = barberOf(r);
@@ -80,7 +85,13 @@ export function computeReport(rows, { users = [], commission, tz }) {
     (r.items || []).forEach((i) => {
       const qty = Number(i.qty) || 0, amt = lineAmount(i);
       if (isProduct(i)) { b.productUnits += qty; b.productAmount += amt; totals.productUnits += qty; totals.productAmount += amt; }
-      else { b.serviceUnits += qty; b.serviceAmount += amt; totals.serviceUnits += qty; totals.serviceAmount += amt; }
+      else {
+        b.serviceUnits += qty; b.serviceAmount += amt; totals.serviceUnits += qty; totals.serviceAmount += amt;
+        if (isCutService(i.name)) { b.cutUnits += qty; totals.cutUnits += qty; } else { b.extraUnits += qty; totals.extraUnits += qty; }
+        const sv = b.services.get(i.name || "") || { units: 0, amount: 0 };
+        sv.units += qty; sv.amount += amt;
+        b.services.set(i.name || "", sv);
+      }
       const ik = `${isProduct(i) ? "p" : "s"}|${i.name}`;
       if (!items.has(ik)) items.set(ik, { kind: isProduct(i) ? "Producto" : "Servicio", name: i.name || "", units: 0, amount: 0, byBarber: new Map() });
       const it = items.get(ik);
@@ -102,11 +113,14 @@ export function computeReport(rows, { users = [], commission, tz }) {
     ticket: b.sales ? r2(b.total / b.sales) : 0,
     perDay: b.days.size ? r2(b.total / b.days.size) : 0,
     productShare: pct(b.productAmount, b.total),
+    extraShare: pct(b.extraUnits, b.serviceUnits),
+    servicesPerSale: b.sales ? r2(b.serviceUnits / b.sales) : 0,
     teamShare: pct(b.total, totals.total),
   })).sort((a, b) => b.total - a.total);
 
   Object.keys(methods).forEach((k) => { methods[k] = r2(methods[k]); });
   ["total", "serviceAmount", "productAmount", "commission"].forEach((k) => { totals[k] = r2(totals[k]); });
+  totals.extraShare = pct(totals.extraUnits, totals.serviceUnits);
   totals.ticket = totals.sales ? r2(totals.total / totals.sales) : 0;
   totals.voided = voided.length;
   totals.voidedAmount = r2(voided.reduce((s, r) => s + (Number(r.total) || 0), 0));
@@ -153,6 +167,9 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
     ["Servicios", t.serviceAmount, pct(t.serviceAmount, t.total)],
     ["Productos", t.productAmount, pct(t.productAmount, t.total)],
     ["Servicios realizados (unidades)", t.serviceUnits],
+    ["   de los cuales cortes", t.cutUnits, pct(t.cutUnits, t.serviceUnits)],
+    ["   de los cuales adicionales (barba, ceja, etc.)", t.extraUnits, t.extraShare],
+    ["   Nota: es corte todo servicio con «corte» en el nombre; lo demás es adicional."],
     ["Productos vendidos (piezas)", t.productUnits],
     ["Comisiones", t.commission, pct(t.commission, t.total)],
     ["Neto para la barbería (total − comisiones)", t.net, pct(t.net, t.total)],
@@ -180,6 +197,10 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
     "Días con ventas": b.daysWorked,
     "Promedio por día": b.perDay,
     "Servicios (unidades)": b.serviceUnits,
+    "Cortes": b.cutUnits,
+    "Servicios adicionales": b.extraUnits,
+    "% adicionales": b.extraShare,
+    "Servicios por venta": b.servicesPerSale,
     "Importe servicios": b.serviceAmount,
     "Productos (piezas)": b.productUnits,
     "Importe productos": b.productAmount,
@@ -187,7 +208,19 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
     "Comisión": b.commission,
     "Cancelaciones": b.voided,
     "Monto cancelado": b.voidedAmount,
-  })), [24, 14, 14, 12, 14, 14, 16, 18, 16, 16, 16, 20, 12, 13, 15]);
+  })), [24, 14, 14, 12, 14, 14, 16, 18, 9, 20, 14, 18, 16, 16, 16, 20, 12, 13, 15]);
+
+  // 2b. Servicios por barbero: units of each service per barber (cortes vs adicionales).
+  const serviceNames = new Map(); // name -> total units
+  barbers.forEach((b) => b.services.forEach((v, name) => serviceNames.set(name, (serviceNames.get(name) || 0) + v.units)));
+  sheetFromRows(XLSX, wb, "Servicios por barbero", [...serviceNames.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, total]) => {
+      const row = { "Servicio": name, "Tipo": isCutService(name) ? "Corte" : "Adicional" };
+      barbers.forEach((b) => { row[b.name] = b.services.get(name)?.units || 0; });
+      row["Total"] = total;
+      return row;
+    }), [34, 11, ...barbers.map(() => 16), 10]);
 
   // 3. Por día (one column per barber)
   const names = barbers.map((b) => b.name);

@@ -115,7 +115,9 @@
         <h2 class="panel-title">Servicios y precios</h2>
         <button class="btn btn-primary" id="addServiceBtn"><i class="fas fa-plus"></i> Agregar servicio</button>
       </div>
-      <p class="panel-help">Los servicios aparecen en la página pública en este mismo orden. Arrastra el ícono <i class="fas fa-grip-vertical"></i> para reordenar.</p>
+      <p class="panel-help">Los servicios aparecen en la página pública en este mismo orden. Arrastra el ícono <i class="fas fa-grip-vertical"></i> para reordenar.
+        <br><b>Nombres:</b> los reportes de ventas separan <b>cortes</b> de <b>servicios adicionales</b> por el nombre. Usa la palabra «corte»
+        únicamente en cortes de cabello; barba, ceja, etc. no deben llevarla.</p>
       <ul class="services-list" id="servicesList"></ul>
     </section>
 
@@ -201,6 +203,8 @@
       <p class="panel-help" id="repHelpAdmin">
         Ventas por barbero (quien cobra es quien hizo el servicio), por día y por servicio o producto.
         Las ventas canceladas no cuentan en los totales; aparecen marcadas en el detalle del Excel.
+        <br><b>Cortes vs. adicionales:</b> se clasifican por el nombre del servicio (si contiene «corte» es corte; lo demás es adicional).
+        Si un servicio sale mal clasificado, corrige su nombre en la pestaña Servicios.
       </p>
       <div class="inv-toolbar">
         <button type="button" class="btn btn-ghost btn-sm" data-rep-preset="today">Hoy</button>
@@ -233,7 +237,8 @@
               <th class="num">Ventas</th>
               <th class="num">Total</th>
               <th class="num">Ticket prom.</th>
-              <th class="num">Servicios</th>
+              <th class="num">Cortes</th>
+              <th class="num">Adicionales</th>
               <th class="num">Productos</th>
               <th class="num">Comisión</th>
               <th class="num">Cancel.</th>
@@ -543,6 +548,13 @@
         <label class="field full">
           <span class="field-label">Nombre <span class="req">*</span></span>
           <input type="text" id="svcName" required maxlength="60" />
+          <span class="field-hint" id="svcKindHint"></span>
+          <span class="field-hint">
+            <i class="fas fa-triangle-exclamation"></i> Ojo: los reportes cuentan como <b>corte</b> todo servicio que tenga la
+            palabra «corte» en el nombre; el resto (barba, ceja…) cuenta como <b>adicional</b>. Usa «corte» solo en cortes de
+            cabello (no «Corte de barba» ni «Corte de ceja», di «Arreglo de barba» o «Perfilado de ceja»). Para combos, no crees
+            un servicio «Corte + barba»: cobra el corte y la barba como dos servicios en la caja.
+          </span>
         </label>
         <label class="field">
           <span class="field-label">Precio (MXN)</span>
