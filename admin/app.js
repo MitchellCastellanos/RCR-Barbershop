@@ -17,7 +17,7 @@ import {
   migrateLegacyInventory, levelOf, totalOf, stockStatus, movementLabel, movementDelta,
 } from "../enlaces/inventory-store.js";
 import { exportInventoryXlsx } from "../enlaces/xlsx-export.js";
-import { computeReport, exportSalesReportXlsx } from "../enlaces/reports-export.js";
+import { computeReport, exportSalesReportXlsx, isCutService } from "../enlaces/reports-export.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
 import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
@@ -184,6 +184,7 @@ async function startApp() {
   $("#svcCancelBtn").onclick = closeServiceModal;
   $("#serviceForm").addEventListener("submit", onServiceFormSubmit);
   $("#svcDeleteBtn").onclick = onServiceDelete;
+  $("#svcName").addEventListener("input", renderServiceKindHint);
   $("#serviceModal").addEventListener("click", (e) => {
     if (e.target.id === "serviceModal") closeServiceModal();
   });
@@ -682,9 +683,20 @@ function openServiceModal(id) {
   $("#svcNote").value = svc.note || "";
   $("#svcActive").value = svc.active === false ? "false" : "true";
   $("#svcDeleteBtn").hidden = isNew;
+  renderServiceKindHint();
 
   $("#serviceModal").hidden = false;
   setTimeout(() => $("#svcName").focus(), 50);
+}
+
+/** Tells whoever is naming a service how the sales reports will count it. */
+function renderServiceKindHint() {
+  const name = $("#svcName").value.trim();
+  const el = $("#svcKindHint");
+  if (!name) { el.textContent = ""; return; }
+  el.textContent = isCutService(name)
+    ? "En reportes se contará como: CORTE"
+    : "En reportes se contará como: servicio ADICIONAL";
 }
 
 function closeServiceModal() {
