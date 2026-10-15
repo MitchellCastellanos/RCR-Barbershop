@@ -1230,7 +1230,7 @@ function renderMovements() {
   });
   $("#invMovNote").textContent = allMovements.length >= 300 ? "Mostrando los 300 movimientos más recientes." : "";
   if (rows.length === 0) {
-    rowsEl.innerHTML = `<tr><td colspan="9" class="empty">Sin movimientos.</td></tr>`;
+    rowsEl.innerHTML = `<tr><td colspan="8" class="empty">Sin movimientos.</td></tr>`;
     return;
   }
   rowsEl.innerHTML = rows.map((m) => {
@@ -1911,7 +1911,7 @@ async function loadReport() {
   if (admin) renderReportBarberOptions();
   const { startIso, endIso } = shopDayRange($("#repFrom").value, $("#repTo").value);
   const msg = (text) => {
-    $("#repRows").innerHTML = `<tr><td colspan="9" class="empty">${text}</td></tr>`;
+    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">${text}</td></tr>`;
     $("#repDayRows").innerHTML = `<tr><td colspan="4" class="empty">${text}</td></tr>`;
   };
   msg("Cargando…");
@@ -1945,7 +1945,7 @@ function renderReport() {
     const workedDays = rep.days.length;
     $("#repTotals").innerHTML =
       tile("Tu comisión", formatPrice(t.commission)) + tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) +
-      tile("Ticket promedio", formatPrice(t.ticket)) + tile("Cortes", t.cutUnits) + tile("Servicios adicionales", `${t.extraUnits} (${t.extraShare}%)`) +
+      tile("Ticket promedio", formatPrice(t.ticket)) + tile("Servicios", `${t.serviceUnits} · ${formatPrice(t.serviceAmount)}`) +
       tile("Productos", `${t.productUnits} · ${formatPrice(t.productAmount)}`) +
       tile("Comisión por día", formatPrice(workedDays ? Math.round(t.commission / workedDays * 100) / 100 : 0)) + tile("Canceladas", t.voided);
     $("#repDayRows").innerHTML = rep.days.length === 0
@@ -1958,7 +1958,7 @@ function renderReport() {
     return;
   }
   if (rep.barbers.length === 0) {
-    $("#repRows").innerHTML = `<tr><td colspan="9" class="empty">Sin ventas en este rango.</td></tr>`;
+    $("#repRows").innerHTML = `<tr><td colspan="8" class="empty">Sin ventas en este rango.</td></tr>`;
     return;
   }
   $("#repRows").innerHTML = rep.barbers.map((b) => `
@@ -1967,8 +1967,7 @@ function renderReport() {
       <td class="num">${b.sales}</td>
       <td class="num"><b>${formatPrice(b.total)}</b></td>
       <td class="num">${formatPrice(b.ticket)}</td>
-      <td class="num">${b.cutUnits}</td>
-      <td class="num">${b.extraUnits} <span class="inv-sub">${b.extraShare}%</span></td>
+      <td class="num">${b.serviceUnits}</td>
       <td class="num">${b.productUnits}</td>
       <td class="num">${formatPrice(b.commission)}</td>
       <td class="num">${b.voided}</td>
