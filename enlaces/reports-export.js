@@ -6,7 +6,7 @@
 // ============================================================
 
 import { getXlsx } from "./xlsx-export.js";
-import { paymentLines, saleCommission } from "./transactions-store.js";
+import { paymentLines, saleCommission, isWholesale } from "./transactions-store.js";
 
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const pct = (part, whole) => (whole > 0 ? r2((part / whole) * 100) : 0);
@@ -43,6 +43,10 @@ function paymentText(tx) {
 export function computeReport(rows, { users = [], commission, tz }) {
   const f = fmts(tz);
   const nameOf = new Map(users.map((u) => [u.uid, u.displayName || u.email]));
+  // Sales to other barbershops (mayoreo) are accounted for separately: they
+  // are not a barber's sale, earn no commission and are not counted as cuts.
+  const wholesaleRows = rows.filter(isWholesale);
+  rows = rows.filter((r) => !isWholesale(r));
   const valid = rows.filter((r) => !r.voided);
   const voided = rows.filter((r) => r.voided);
 
@@ -52,7 +56,7 @@ export function computeReport(rows, { users = [], commission, tz }) {
     if (!barbers.has(key)) {
       barbers.set(key, {
         key, name: nameOf.get(r.cashierUid) || r.cashierName || "—",
-        sales: 0, total: 0, serviceUnits: 0, serviceAmount: 0, productUnits: 0, productAmount: 0,
+        sales: 0, serviceSales: 0, productOnlySales: 0, total: 0, serviceUnits: 0, serviceAmount: 0, productUnits: 0, productAmount: 0,
         cutUnits: 0, extraUnits: 0, services: new Map(),
         commission: 0, voided: 0, voidedAmount: 0, days: new Set(),
       });
@@ -63,7 +67,7 @@ export function computeReport(rows, { users = [], commission, tz }) {
   const methods = { efectivo: 0, tarjeta: 0, transferencia: 0 };
   const days = new Map();   // ymd -> { sales, byBarber: Map(key -> amount), total }
   const items = new Map();  // kind|name -> { kind, name, units, amount, byBarber: Map(key -> units) }
-  const totals = { sales: 0, total: 0, cutUnits: 0, extraUnits: 0, serviceUnits: 0, serviceAmount: 0, productUnits: 0, productAmount: 0, commission: 0 };
+  const totals = { sales: 0, serviceSales: 0, productOnlySales: 0, total: 0, cutUnits: 0, extraUnits: 0, serviceUnits: 0, serviceAmount: 0, productUnits: 0, productAmount: 0, commission: 0 };
 
   valid.forEach((r) => {
     const b = barberOf(r);
@@ -72,7 +76,11 @@ export function computeReport(rows, { users = [], commission, tz }) {
     b.sales++; b.total += Number(r.total) || 0; b.commission += comm; b.days.add(ymd);
     totals.sales++; totals.total += Number(r.total) || 0; totals.commission += comm;
 
-    if (!days.has(ymd)) days.set(ymd, { ymd, sales: 0, total: 0, commission: 0, byBarber: new Map() });
+    // A ticket is a "service ticket" when it has any service line; otherwise it is a pure product sale.
+    const hasService = (r.items || []).some((i) => !isProduct(i));
+    if (hasService) { b.serviceSales++; totals.serviceSales++; } else { b.productOnlySales++; totals.productOnlySales++; }
+
+    if (!days.has(ymd)) days.set(ymd, { ymd, sales: 0, cutUnits: 0, total: 0, commission: 0, byBarber: new Map() });
     const d = days.get(ymd);
     d.sales++; d.total += Number(r.total) || 0; d.commission += comm;
     d.byBarber.set(b.key, (d.byBarber.get(b.key) || 0) + (Number(r.total) || 0));
@@ -87,7 +95,7 @@ export function computeReport(rows, { users = [], commission, tz }) {
       if (isProduct(i)) { b.productUnits += qty; b.productAmount += amt; totals.productUnits += qty; totals.productAmount += amt; }
       else {
         b.serviceUnits += qty; b.serviceAmount += amt; totals.serviceUnits += qty; totals.serviceAmount += amt;
-        if (isCutService(i.name)) { b.cutUnits += qty; totals.cutUnits += qty; } else { b.extraUnits += qty; totals.extraUnits += qty; }
+        if (isCutService(i.name)) { b.cutUnits += qty; totals.cutUnits += qty; d.cutUnits += qty; } else { b.extraUnits += qty; totals.extraUnits += qty; }
         const sv = b.services.get(i.name || "") || { units: 0, amount: 0 };
         sv.units += qty; sv.amount += amt;
         b.services.set(i.name || "", sv);
@@ -135,7 +143,56 @@ export function computeReport(rows, { users = [], commission, tz }) {
 
   const dayList = [...days.values()].map((d) => ({ ...d, total: r2(d.total), commission: r2(d.commission) })).sort((a, b) => (a.ymd < b.ymd ? -1 : 1));
 
-  return { totals, methods, barbers: barberList, days: dayList, items: itemList, nameByKey, valid, voided };
+  const wholesale = summarizeWholesale(wholesaleRows);
+  return { totals, methods, barbers: barberList, days: dayList, items: itemList, nameByKey, valid, voided, wholesale };
+}
+
+/** Totals of the non-cancelled wholesale (mayoreo) sales in `rows`. */
+export function summarizeWholesale(rows) {
+  const ws = rows.filter((r) => isWholesale(r) && !r.voided);
+  const customers = new Map();
+  let units = 0, total = 0;
+  ws.forEach((r) => {
+    let u = 0;
+    (r.items || []).forEach((i) => { u += Number(i.qty) || 0; });
+    units += u; total += Number(r.total) || 0;
+    const c = customers.get(r.customer || "—") || { name: r.customer || "—", sales: 0, units: 0, total: 0 };
+    c.sales++; c.units += u; c.total += Number(r.total) || 0;
+    customers.set(c.name, c);
+  });
+  return {
+    sales: ws.length, units, total: r2(total),
+    customers: [...customers.values()].map((c) => ({ ...c, total: r2(c.total) })).sort((a, b) => b.total - a.total),
+  };
+}
+
+/**
+ * Units and money of every product sold, kept apart by channel: the counter
+ * ("tienda", minus the per-piece barber commission) and other barbershops
+ * ("mayoreo"). `profit` = what the owner keeps after cost (and commission).
+ * Returns Map productId -> { shopUnits, shopAmount, wholeUnits, wholeAmount, profit }
+ * plus a `totals` entry under key "__total".
+ */
+export function computeProductSales(rows, products, commission) {
+  const cost = new Map(products.map((p) => [p.id, Number(p.cost) || 0]));
+  const blank = () => ({ shopUnits: 0, shopAmount: 0, wholeUnits: 0, wholeAmount: 0, profit: 0 });
+  const out = new Map();
+  const all = blank();
+  rows.filter((r) => !r.voided).forEach((r) => {
+    const whole = isWholesale(r);
+    (r.items || []).filter(isProduct).forEach((i) => {
+      const qty = Number(i.qty) || 0, amt = lineAmount(i);
+      const net = amt - (whole ? 0 : qty * (Number(commission?.productAmount) || 0)) - qty * (cost.get(i.refId) || 0);
+      [out.get(i.refId) || out.set(i.refId, blank()).get(i.refId), all].forEach((e) => {
+        if (whole) { e.wholeUnits += qty; e.wholeAmount += amt; } else { e.shopUnits += qty; e.shopAmount += amt; }
+        e.profit += net;
+      });
+    });
+  });
+  const round = (e) => { ["shopAmount", "wholeAmount", "profit"].forEach((k) => { e[k] = r2(e[k]); }); return e; };
+  out.forEach(round);
+  out.set("__total", round(all));
+  return out;
 }
 
 function sheetFromRows(XLSX, wb, name, rows, widths) {
@@ -146,7 +203,7 @@ function sheetFromRows(XLSX, wb, name, rows, widths) {
 }
 
 /** Builds and downloads the .xlsx. `from`/`to`: "YYYY-MM-DD" shop days. */
-export async function exportSalesReportXlsx({ rows, users, commission, tz, from, to, barberLabel = "Todos" }) {
+export async function exportSalesReportXlsx({ rows, products = [], users, commission, tz, from, to, barberLabel = "Todos" }) {
   const XLSX = await getXlsx();
   const f = fmts(tz);
   const rep = computeReport(rows, { users, commission, tz });
@@ -166,6 +223,8 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
     ["Ticket promedio", t.ticket],
     ["Servicios", t.serviceAmount, pct(t.serviceAmount, t.total)],
     ["Productos", t.productAmount, pct(t.productAmount, t.total)],
+    ["Cobros con servicio (clientes)", t.serviceSales],
+    ["Cobros solo de producto", t.productOnlySales],
     ["Servicios realizados (unidades)", t.serviceUnits],
     ["   de los cuales cortes", t.cutUnits, pct(t.cutUnits, t.serviceUnits)],
     ["   de los cuales adicionales (barba, ceja, etc.)", t.extraUnits, t.extraShare],
@@ -173,6 +232,11 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
     ["Productos vendidos (piezas)", t.productUnits],
     ["Comisiones", t.commission, pct(t.commission, t.total)],
     ["Neto para la barbería (total − comisiones)", t.net, pct(t.net, t.total)],
+    [],
+    ["VENTAS A BARBERÍAS (mayoreo, aparte de los totales de arriba)", "Monto"],
+    ["Número de ventas", rep.wholesale.sales],
+    ["Piezas vendidas", rep.wholesale.units],
+    ["Monto vendido", rep.wholesale.total],
     [],
     ["COBRADO POR MÉTODO DE PAGO", "Monto", "% del total"],
     ["Efectivo", methods.efectivo, pct(methods.efectivo, t.total)],
@@ -190,7 +254,7 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
   // 2. Por barbero
   sheetFromRows(XLSX, wb, "Por barbero", barbers.map((b) => ({
     "Barbero": b.name,
-    "Ventas (tickets)": b.sales,
+    "Cobros (tickets)": b.sales,
     "Total vendido": b.total,
     "% del equipo": b.teamShare,
     "Ticket promedio": b.ticket,
@@ -229,12 +293,13 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
     const row = {
       "Fecha": d.ymd,
       "Día": f.weekday.format(new Date(Date.UTC(y, m - 1, dd, 12))),
-      "Ventas (tickets)": d.sales,
+      "Cobros (tickets)": d.sales,
+      "Cortes": d.cutUnits,
     };
     barbers.forEach((b) => { row[b.name] = r2(d.byBarber.get(b.key) || 0); });
     row["Total"] = r2(d.total);
     return row;
-  }), [12, 12, 15, ...names.map(() => 16), 14]);
+  }), [12, 12, 15, 9, ...names.map(() => 16), 14]);
 
   // 4. Servicios y productos
   const kindTotal = { Servicio: t.serviceAmount, Producto: t.productAmount };
@@ -248,6 +313,28 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
     "Unidades de esa persona": it.topUnits,
   })), [11, 34, 10, 12, 12, 22, 22]);
 
+  // 4b. Productos por canal: tienda vs. barberías, cada uno por separado y en total.
+  const sales = computeProductSales(rows, products, commission);
+  const prodRows = products.filter((p) => sales.has(p.id)).map((p) => {
+    const e = sales.get(p.id);
+    return {
+      "Producto": p.name || "",
+      "Piezas en tienda": e.shopUnits, "Importe tienda": e.shopAmount,
+      "Piezas a barberías": e.wholeUnits, "Importe barberías": e.wholeAmount,
+      "Piezas totales": e.shopUnits + e.wholeUnits, "Importe total": r2(e.shopAmount + e.wholeAmount),
+      "Ganancia (después de costo y comisión)": e.profit,
+    };
+  });
+  const tot = sales.get("__total");
+  prodRows.push({
+    "Producto": "TOTAL",
+    "Piezas en tienda": tot.shopUnits, "Importe tienda": tot.shopAmount,
+    "Piezas a barberías": tot.wholeUnits, "Importe barberías": tot.wholeAmount,
+    "Piezas totales": tot.shopUnits + tot.wholeUnits, "Importe total": r2(tot.shopAmount + tot.wholeAmount),
+    "Ganancia (después de costo y comisión)": tot.profit,
+  });
+  sheetFromRows(XLSX, wb, "Productos por canal", prodRows, [32, 14, 14, 16, 16, 14, 14, 24]);
+
   // 5. Detalle: one row per sold line, oldest first; cancelled ones flagged.
   const detail = [];
   rows.slice().sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1)).forEach((r) => {
@@ -258,6 +345,7 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
         "Hora": f.time.format(when),
         "Barbero": rep.nameByKey.get(r.cashierUid || r.cashierName || "—") || r.cashierName || "—",
         "Tipo": isProduct(i) ? "Producto" : "Servicio",
+        "Canal": isWholesale(r) ? "Barbería: " + (r.customer || "") : "Tienda",
         "Concepto": i.name || "",
         "Cantidad": Number(i.qty) || 0,
         "Precio unitario": Number(i.unitPrice) || 0,
@@ -269,7 +357,7 @@ export async function exportSalesReportXlsx({ rows, users, commission, tz, from,
       });
     });
   });
-  sheetFromRows(XLSX, wb, "Detalle de ventas", detail, [12, 8, 22, 11, 34, 9, 14, 12, 34, 11, 30, 16]);
+  sheetFromRows(XLSX, wb, "Detalle de ventas", detail, [12, 8, 22, 11, 24, 34, 9, 14, 12, 34, 11, 30, 16]);
 
   XLSX.writeFile(wb, `reporte-ventas-${from}_a_${to}.xlsx`);
   return { sales: t.sales, lines: detail.length };

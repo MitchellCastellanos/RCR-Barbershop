@@ -106,7 +106,9 @@ service cloud.firestore {
       allow read: if isAdmin() || (isSignedIn() && resource.data.cashierUid == request.auth.uid);
       allow create: if isActiveUser()
         && request.resource.data.cashierUid == request.auth.uid
-        && request.resource.data.voided == false;
+        && request.resource.data.voided == false
+        // Wholesale sales to other barbershops are admin-only.
+        && (request.resource.data.get('channel', 'tienda') != 'mayoreo' || isAdmin());
       allow update: if isAdmin() && diffKeys().hasOnly(['voided', 'voidedAt', 'voidedBy']);
       allow delete: if false;
     }

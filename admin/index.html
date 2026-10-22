@@ -234,7 +234,7 @@
           <thead>
             <tr>
               <th>Barbero</th>
-              <th class="num">Ventas</th>
+              <th class="num">Cobros</th>
               <th class="num">Total</th>
               <th class="num">Ticket prom.</th>
               <th class="num">Cortes</th>
@@ -254,7 +254,8 @@
           <thead>
             <tr>
               <th>Día</th>
-              <th class="num">Ventas</th>
+              <th class="num">Cobros</th>
+              <th class="num">Cortes</th>
               <th class="num">Total</th>
               <th class="num">Tu comisión</th>
             </tr>
@@ -283,6 +284,7 @@
     <section class="panel" id="panel-inventario" hidden>
       <div class="panel-head">
         <h2 class="panel-title">Inventario</h2>
+        <button class="btn btn-primary" id="wsOpenBtn"><i class="fas fa-truck-fast"></i> Vender a barbería</button>
         <button class="btn btn-ghost" id="invExportBtn"><i class="fas fa-file-excel"></i> Exportar Excel</button>
       </div>
       <p class="panel-help">
@@ -297,6 +299,20 @@
       </div>
 
       <div class="inv-summary" id="invSummary"></div>
+
+      <div class="inv-toolbar">
+        <label class="field-hint" for="invSalesPeriod">Vendido en:</label>
+        <select id="invSalesPeriod">
+          <option value="all">Todo el tiempo</option>
+          <option value="month">Este mes</option>
+          <option value="last30">Últimos 30 días</option>
+          <option value="today">Hoy</option>
+        </select>
+      </div>
+      <p class="panel-help">
+        Las columnas «Vendido» cuentan piezas por separado: <b>Tienda</b> (a clientes en caja) y <b>Barberías</b> (mayoreo).
+        «Ganancia» = lo vendido − costo de compra − comisión del barbero (solo en tienda). Las ventas canceladas no cuentan.
+      </p>
 
       <div class="inv-toolbar">
         <input type="search" id="invSearch" placeholder="Buscar producto…" />
@@ -317,6 +333,10 @@
               <th class="num">Barbería</th>
               <th class="num">Almacén</th>
               <th class="num">Total</th>
+              <th class="num">Vendido tienda</th>
+              <th class="num">Vendido barberías</th>
+              <th class="num">Vendido total</th>
+              <th class="num">Ganancia</th>
               <th>Estado</th>
               <th class="inv-actions-col">Acciones</th>
             </tr>
@@ -338,6 +358,7 @@
           <option value="merma">Salidas / mermas</option>
           <option value="traspaso">Traspasos</option>
           <option value="venta">Ventas</option>
+          <option value="mayoreo">Ventas a barberías</option>
           <option value="cancelacion">Cancelaciones de venta</option>
           <option value="conteo">Conteos físicos</option>
           <option value="alta">Altas iniciales</option>
@@ -606,12 +627,18 @@
           <input type="text" id="prodUnit" maxlength="20" placeholder="pieza" />
         </label>
         <label class="field">
-          <span class="field-label">Precio de venta (MXN) <span class="req">*</span></span>
+          <span class="field-label">Precio a cliente (MXN) <span class="req">*</span></span>
           <input type="number" id="prodPrice" min="0" step="1" required />
+          <span class="field-hint" id="prodNetHint"></span>
         </label>
         <label class="field">
-          <span class="field-label">Costo (opcional)</span>
+          <span class="field-label">Costo de compra (opcional)</span>
           <input type="number" id="prodCost" min="0" step="1" />
+        </label>
+        <label class="field">
+          <span class="field-label">Precio a barberías (mayoreo)</span>
+          <input type="number" id="prodWholesale" min="0" step="1" />
+          <span class="field-hint">Lo que cobras al venderle a otras barberías.</span>
         </label>
         <label class="field" data-new-only>
           <span class="field-label">Inventario inicial · Barbería</span>
@@ -724,6 +751,54 @@
         </div>
       </form>
       <div class="stock-history" id="stockHistory"></div>
+    </div>
+  </div>
+
+  <!-- Wholesale (venta a barberías) modal -->
+  <div class="modal" id="wsModal" hidden>
+    <div class="modal-card modal-card-wide">
+      <div class="modal-head">
+        <h3>Vender a barbería</h3>
+        <button class="icon-btn" id="wsClose" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="wsForm" class="form-grid">
+        <label class="field">
+          <span class="field-label">Barbería (cliente) <span class="req">*</span></span>
+          <input type="text" id="wsCustomer" maxlength="80" required placeholder="Ej. Barbería El Patrón" />
+        </label>
+        <label class="field">
+          <span class="field-label">Sale de</span>
+          <select id="wsLocation">
+            <option value="almacen">Almacén</option>
+            <option value="barberia">Barbería</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-label">Método de pago</span>
+          <select id="wsMethod">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="tarjeta">Tarjeta</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-label">Notas (opcional)</span>
+          <input type="text" id="wsNotes" maxlength="120" />
+        </label>
+        <div class="field full">
+          <span class="field-label">Productos</span>
+          <ul class="pos-cart-list" id="wsLines"></ul>
+          <button type="button" class="btn btn-ghost btn-sm" id="wsAddLine"><i class="fas fa-plus"></i> Agregar producto</button>
+        </div>
+        <div class="field full pos-total-row">
+          <span class="pos-total-label">Total</span>
+          <span class="pos-total-amount" id="wsTotal">$0</span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="wsCancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="wsSubmit"><i class="fas fa-check"></i> Registrar venta</button>
+        </div>
+      </form>
     </div>
   </div>
 

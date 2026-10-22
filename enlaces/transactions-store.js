@@ -152,6 +152,108 @@ export async function sellCart(cartItems, payments, cashier, notes = "") {
   return { id: txId, total, payments: cleanPayments };
 }
 
+/** A sale to another barbería (provider sale) rather than a client at the counter. */
+export const isWholesale = (tx) => tx?.channel === "mayoreo";
+
+/**
+ * Wholesale ("venta a barberías", admin only). Product lines only, priced at
+ * the wholesale price; stock comes out of `location` (almacén by default) in
+ * the same Firestore transaction. Stored in `transactions` with
+ * channel: "mayoreo" so voiding and reports keep working, but it never earns
+ * a commission and stays out of the corte de caja.
+ * lines: [{ refId, name, unitPrice, qty }]
+ * opts: { customer, location, paymentMethod, notes }
+ */
+export async function sellWholesale(lines, opts, cashier) {
+  if (!FIREBASE_ENABLED) throw new Error("Firebase no está habilitado.");
+  if (!lines || lines.length === 0) throw new Error("Agrega al menos un producto.");
+  if (!cashier || !cashier.uid) throw new Error("No se pudo identificar al usuario.");
+  const customer = (opts?.customer || "").trim();
+  if (!customer) throw new Error("Escribe el nombre de la barbería.");
+  const location = opts?.location === "barberia" ? "barberia" : "almacen";
+  const other = location === "almacen" ? "barberia" : "almacen";
+  const method = PAYMENT_METHODS.includes(opts?.paymentMethod) ? opts.paymentMethod : "efectivo";
+  const items = lines.map((i) => ({
+    kind: "product",
+    refId: i.refId,
+    name: i.name,
+    unitPrice: Number(i.unitPrice),
+    qty: Number(i.qty),
+    subtotal: Number(i.unitPrice) * Number(i.qty),
+  }));
+  if (items.some((i) => !(i.qty > 0) || !(i.unitPrice >= 0))) throw new Error("Revisa cantidades y precios.");
+  const total = round2(items.reduce((s, i) => s + i.subtotal, 0));
+
+  const { db, doc, collection, runTransaction } = await getFirestore();
+  const txId = makeId();
+
+  await runTransaction(db, async (tx) => {
+    const wanted = new Map();
+    items.forEach((i) => wanted.set(i.refId, (wanted.get(i.refId) || 0) + i.qty));
+    const ids = [...wanted.keys()];
+    const productRefs = ids.map((id) => doc(db, "products", id));
+    const invRefs = ids.map((id) => doc(db, "inventory", id));
+    const [productSnaps, invSnaps] = await Promise.all([
+      Promise.all(productRefs.map((r) => tx.get(r))),
+      Promise.all(invRefs.map((r) => tx.get(r))),
+    ]);
+
+    ids.forEach((id, idx) => {
+      const name = items.find((i) => i.refId === id).name;
+      if (!productSnaps[idx].exists()) throw new Error(`"${name}" ya no existe.`);
+      const have = invSnaps[idx].exists() ? Number(invSnaps[idx].data().levels?.[location]) || 0 : 0;
+      if (have < wanted.get(id)) {
+        throw new Error(`No hay suficiente inventario de "${name}" en ${location === "almacen" ? "el almacén" : "la barbería"} (quedan ${have}).`);
+      }
+    });
+
+    ids.forEach((id, idx) => {
+      const qty = wanted.get(id);
+      const levels = invSnaps[idx].data().levels || {};
+      const after = (Number(levels[location]) || 0) - qty;
+      const otherLevel = Number(levels[other]) || 0;
+      tx.update(invRefs[idx], { levels: { [location]: after, [other]: otherLevel }, updatedAt: nowIso() });
+      if (after + otherLevel <= 0) tx.update(productRefs[idx], { inStock: false, updatedAt: nowIso() });
+      const movementRef = doc(collection(db, "inventoryMovements"));
+      tx.set(movementRef, {
+        id: movementRef.id,
+        productId: id,
+        productName: items.find((i) => i.refId === id).name,
+        type: "salida",
+        kind: "mayoreo",
+        location,
+        quantity: qty,
+        stockAfter: after,
+        reason: `Venta a ${customer}`,
+        relatedTransactionId: txId,
+        byUid: cashier.uid,
+        byName: cashier.name || "",
+        createdAt: nowIso(),
+      });
+    });
+
+    tx.set(doc(db, "transactions", txId), {
+      id: txId,
+      channel: "mayoreo",
+      customer,
+      inventoryLocation: location,
+      items,
+      payments: [{ method, amount: total, note: "" }],
+      paymentMethod: method,
+      total,
+      notes: (opts?.notes || "").trim(),
+      cashierUid: cashier.uid,
+      cashierName: cashier.name || "",
+      voided: false,
+      voidedAt: null,
+      voidedBy: null,
+      createdAt: nowIso(),
+    });
+  });
+
+  return { id: txId, total };
+}
+
 /**
  * Returns a sale's product lines to the barbería inventory and marks it voided.
  * Voiding is admin-only per firestore.rules, so `fsCtx` — if provided —
@@ -169,6 +271,9 @@ export async function voidTransaction(transactionId, fsCtx = null, voidedByUid =
     if (!txSnap.exists()) throw new Error("La venta ya no existe.");
     const saleData = txSnap.data();
     if (saleData.voided) throw new Error("Esta venta ya estaba cancelada.");
+    // Retail sales deduct the barbería; wholesale ones record where they came from.
+    const loc = saleData.inventoryLocation === "almacen" ? "almacen" : "barberia";
+    const other = loc === "almacen" ? "barberia" : "almacen";
 
     // Merge repeated lines of the same product so each inventory doc is touched once.
     const qtyByProduct = new Map();
@@ -189,9 +294,9 @@ export async function voidTransaction(transactionId, fsCtx = null, voidedByUid =
       if (!productSnaps[idx].exists()) return; // product deleted since — nothing to restock
       const qty = qtyByProduct.get(id);
       const levels = invSnaps[idx].exists() ? invSnaps[idx].data().levels || {} : {};
-      const shopAfter = (Number(levels.barberia) || 0) + qty;
-      const warehouse = Number(levels.almacen) || 0;
-      const invData = { productId: id, levels: { barberia: shopAfter, almacen: warehouse }, updatedAt: nowIso() };
+      const locAfter = (Number(levels[loc]) || 0) + qty;
+      const otherLevel = Number(levels[other]) || 0;
+      const invData = { productId: id, levels: { [loc]: locAfter, [other]: otherLevel }, updatedAt: nowIso() };
       if (invSnaps[idx].exists()) tx.update(invRefs[idx], invData);
       else tx.set(invRefs[idx], { ...invData, lowThreshold: 3 });
       if (productSnaps[idx].data().inStock !== true) tx.update(productRefs[idx], { inStock: true, updatedAt: nowIso() });
@@ -202,9 +307,9 @@ export async function voidTransaction(transactionId, fsCtx = null, voidedByUid =
         productName: nameByProduct.get(id),
         type: "entrada",
         kind: "cancelacion",
-        location: "barberia",
+        location: loc,
         quantity: qty,
-        stockAfter: shopAfter,
+        stockAfter: locAfter,
         reason: "Cancelación de venta",
         relatedTransactionId: transactionId,
         byUid: voidedByUid || null,

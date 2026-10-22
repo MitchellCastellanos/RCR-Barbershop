@@ -28,6 +28,7 @@ export const KIND_LABELS = {
   merma: "Salida / merma",
   traspaso: "Traspaso",
   venta: "Venta",
+  mayoreo: "Venta a barbería",
   cancelacion: "Cancelación de venta",
   conteo: "Conteo físico",
 };

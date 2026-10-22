@@ -78,6 +78,7 @@ export async function createProduct(input) {
     usage: input.usage || "",
     price: input.price === "" || input.price == null ? "" : Number(input.price),
     cost: input.cost === "" || input.cost == null ? "" : Number(input.cost),
+    wholesalePrice: input.wholesalePrice === "" || input.wholesalePrice == null ? "" : Number(input.wholesalePrice),
     unit: input.unit || "pieza",
     inStock: false, // flipped by inventory transactions once stock is added
     active: input.active !== false,

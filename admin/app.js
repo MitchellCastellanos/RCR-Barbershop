@@ -17,9 +17,9 @@ import {
   migrateLegacyInventory, levelOf, totalOf, stockStatus, movementLabel, movementDelta,
 } from "../enlaces/inventory-store.js";
 import { exportInventoryXlsx } from "../enlaces/xlsx-export.js";
-import { computeReport, exportSalesReportXlsx, isCutService } from "../enlaces/reports-export.js";
+import { computeReport, computeProductSales, summarizeWholesale, exportSalesReportXlsx, isCutService } from "../enlaces/reports-export.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
-import { sellCart, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
+import { sellCart, sellWholesale, isWholesale, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
 import {
   resolveMyProfile, subscribeUsers, createCashier, setUserActive,
@@ -208,6 +208,15 @@ async function startApp() {
   ["#invMovLocation", "#invMovKind", "#invMovSearch"].forEach((sel) => $(sel).addEventListener("input", renderMovements));
   $("#invMigrateBtn").onclick = onMigrateInventory;
   $("#invExportBtn").onclick = onExportInventory;
+  $("#invSalesPeriod").addEventListener("change", loadInventorySales);
+  $("#wsOpenBtn").onclick = openWholesaleModal;
+  $("#wsLocation").addEventListener("change", renderWholesaleLines);
+  $("#wsClose").onclick = closeWholesaleModal;
+  $("#wsCancel").onclick = closeWholesaleModal;
+  $("#wsAddLine").onclick = () => addWholesaleLine();
+  $("#wsForm").addEventListener("submit", onWholesaleSubmit);
+  $("#wsModal").addEventListener("click", (e) => { if (e.target.id === "wsModal") closeWholesaleModal(); });
+  $("#prodPrice").addEventListener("input", renderProductNetHint);
   $$("[data-rep-preset]").forEach((b) => { b.onclick = () => applyReportPreset(b.dataset.repPreset); });
   ["#repFrom", "#repTo"].forEach((sel) => $(sel).addEventListener("change", loadReport));
   $("#repBarber").addEventListener("change", renderReport);
@@ -541,7 +550,7 @@ function switchTab(name) {
   });
   $$(".panel").forEach(p => p.hidden = p.id !== `panel-${name}`);
   setSidebarOpen(false);
-  if (name === "inventario") startMovementsFeed();
+  if (name === "inventario") { startMovementsFeed(); loadInventorySales(); }
   if (name === "reportes") loadReport();
 }
 
@@ -818,6 +827,8 @@ function openProductModal(id) {
   $("#prodUnit").value = p?.unit || "pieza";
   $("#prodPrice").value = p?.price ?? "";
   $("#prodCost").value = p?.cost ?? "";
+  $("#prodWholesale").value = p?.wholesalePrice ?? "";
+  renderProductNetHint();
   $("#prodLowStock").value = 3;
   $("#prodActive").value = p?.active === false ? "false" : "true";
   $("#prodDesc").value = p?.description || "";
@@ -835,6 +846,14 @@ function openProductModal(id) {
 
   $("#productModal").hidden = false;
   setTimeout(() => $("#prodName").focus(), 50);
+}
+
+/** Shows what the shop keeps from a counter sale after the barber's per-piece commission. */
+function renderProductNetHint() {
+  const price = $("#prodPrice").value;
+  $("#prodNetHint").textContent = price === ""
+    ? ""
+    : `En la barbería te quedan ${formatPrice(Number(price) - commissionSettings.productAmount)} (menos ${formatPrice(commissionSettings.productAmount)} de comisión).`;
 }
 
 function closeProductModal() {
@@ -920,6 +939,7 @@ async function onProductFormSubmit(ev) {
     unit: $("#prodUnit").value.trim() || "pieza",
     price: Number(priceVal),
     cost: $("#prodCost").value === "" ? "" : Number($("#prodCost").value),
+    wholesalePrice: $("#prodWholesale").value === "" ? "" : Number($("#prodWholesale").value),
     active: $("#prodActive").value === "true",
     description: $("#prodDesc").value.trim(),
     brand: $("#prodBrand").value.trim(),
@@ -1147,10 +1167,16 @@ function renderInventory() {
     if (st === "agotado") counts.out++;
     if (st === "agotado" || st === "bajo" || st === "sin-barberia") counts.restock++;
   });
+  const sales = computeProductSales(invSalesRows, products, commissionSettings);
+  const st = sales.get("__total");
   $("#invSummary").innerHTML = `
     <div class="inv-tile"><b>${products.length}</b><span>Productos</span></div>
     <div class="inv-tile ${counts.restock ? "is-warn" : ""}"><b>${counts.restock}</b><span>Por reabastecer</span></div>
-    <div class="inv-tile ${counts.out ? "is-low" : ""}"><b>${counts.out}</b><span>Agotados</span></div>`;
+    <div class="inv-tile ${counts.out ? "is-low" : ""}"><b>${counts.out}</b><span>Agotados</span></div>
+    <div class="inv-tile"><b>${st.shopUnits}</b><span>Vendidas en tienda · ${formatPrice(st.shopAmount)}</span></div>
+    <div class="inv-tile"><b>${st.wholeUnits}</b><span>Vendidas a barberías · ${formatPrice(st.wholeAmount)}</span></div>
+    <div class="inv-tile"><b>${st.shopUnits + st.wholeUnits}</b><span>Piezas vendidas en total · ${formatPrice(st.shopAmount + st.wholeAmount)}</span></div>
+    <div class="inv-tile"><b>${formatPrice(st.profit)}</b><span>Ganancia estimada</span></div>`;
 
   const list = products.filter((p) => {
     const inv = inventory.get(p.id);
@@ -1164,18 +1190,23 @@ function renderInventory() {
   });
 
   if (list.length === 0) {
-    rowsEl.innerHTML = `<tr><td colspan="6" class="empty">${products.length ? "Sin resultados con esos filtros." : "Aún no hay productos."}</td></tr>`;
+    rowsEl.innerHTML = `<tr><td colspan="10" class="empty">${products.length ? "Sin resultados con esos filtros." : "Aún no hay productos."}</td></tr>`;
     return;
   }
   rowsEl.innerHTML = list.map((p) => {
     const inv = inventory.get(p.id);
     const st = stockStatus(inv);
+    const sold = sales.get(p.id) || { shopUnits: 0, wholeUnits: 0, profit: 0 };
     return `
       <tr data-id="${escapeAttr(p.id)}">
         <td><div class="inv-name">${escape(p.name || "(sin nombre)")}</div>${p.category ? `<div class="inv-sub">${escape(p.category)}</div>` : ""}</td>
         <td class="num">${levelOf(inv, "barberia")}</td>
         <td class="num">${levelOf(inv, "almacen")}</td>
         <td class="num"><b>${totalOf(inv)}</b> <span class="inv-sub">${unitOf(p)}</span></td>
+        <td class="num">${sold.shopUnits}</td>
+        <td class="num">${sold.wholeUnits}</td>
+        <td class="num"><b>${sold.shopUnits + sold.wholeUnits}</b></td>
+        <td class="num">${formatPrice(sold.profit)}</td>
         <td><span class="stock-chip ${STATUS_CLASS[st]}">${STATUS_LABELS[st]}</span></td>
         <td class="inv-actions-col">
           <button class="icon-btn" data-act="entrada" title="Entrada"><i class="fas fa-plus"></i></button>
@@ -1190,6 +1221,123 @@ function renderInventory() {
       btn.onclick = () => openStockModal(tr.dataset.id, btn.dataset.act);
     });
   });
+}
+
+// ---------- Ventas por producto (Inventario) ----------
+let invSalesRows = [];
+
+function inventoryPeriodRange() {
+  const today = todayIso();
+  let from = "2000-01-01";
+  const v = $("#invSalesPeriod").value;
+  if (v === "today") from = today;
+  else if (v === "month") from = `${today.slice(0, 8)}01`;
+  else if (v === "last30") from = ymdAddDays(today, -29);
+  return shopDayRange(from, today);
+}
+
+async function loadInventorySales() {
+  if (!isAdminRole()) return;
+  try {
+    commissionSettings = await fetchCommissionSettings();
+    const { startIso, endIso } = inventoryPeriodRange();
+    invSalesRows = await fetchTransactionsRange(startIso, endIso, null);
+    renderInventory();
+  } catch (err) {
+    toast("No se pudieron cargar las ventas: " + err.message, "error");
+  }
+}
+
+// ---------- Venta a barberías (mayoreo) ----------
+let wsLines = [];   // [{ id, refId, qty, unitPrice }]
+let wsLineSeq = 0;
+
+function openWholesaleModal() {
+  $("#wsForm").reset();
+  wsLines = [];
+  addWholesaleLine();
+  $("#wsModal").hidden = false;
+  setTimeout(() => $("#wsCustomer").focus(), 50);
+}
+
+function closeWholesaleModal() {
+  $("#wsModal").hidden = true;
+}
+
+function addWholesaleLine() {
+  wsLines.push({ id: ++wsLineSeq, refId: "", qty: 1, unitPrice: "" });
+  renderWholesaleLines();
+}
+
+function wsProductOptions(selected) {
+  return `<option value="">Elige un producto…</option>` + products.map((p) =>
+    `<option value="${escapeAttr(p.id)}" ${p.id === selected ? "selected" : ""}>${escape(p.name)}</option>`).join("");
+}
+
+function wholesaleTotal() {
+  return round2(wsLines.reduce((sum, l) => sum + (Number(l.unitPrice) || 0) * (Number(l.qty) || 0), 0));
+}
+
+function renderWholesaleLines() {
+  const loc = $("#wsLocation").value;
+  $("#wsLines").innerHTML = wsLines.map((l) => {
+    const p = products.find((x) => x.id === l.refId);
+    const have = p ? levelOf(inventory.get(p.id), loc) : null;
+    return `
+      <li class="pos-cart-row" data-id="${l.id}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <select data-f="refId" style="flex:2;min-width:160px;">${wsProductOptions(l.refId)}</select>
+        <input data-f="qty" type="number" min="1" step="1" value="${l.qty}" style="width:70px;" aria-label="Cantidad" />
+        <input data-f="unitPrice" type="number" min="0" step="1" value="${l.unitPrice}" style="width:90px;" aria-label="Precio unitario" placeholder="Precio" />
+        <button type="button" class="icon-btn icon-btn-danger" data-f="del" aria-label="Quitar"><i class="fas fa-trash"></i></button>
+        ${p ? `<small class="field-hint" style="flex-basis:100%;">${have} en ${LOCATION_LABELS[loc]}${p.wholesalePrice === "" || p.wholesalePrice == null ? " · este producto no tiene precio de mayoreo" : ""}</small>` : ""}
+      </li>`;
+  }).join("");
+  $$("#wsLines li").forEach((li) => {
+    const line = wsLines.find((x) => x.id === Number(li.dataset.id));
+    $$("[data-f]", li).forEach((el) => {
+      if (el.dataset.f === "del") {
+        el.onclick = () => { wsLines = wsLines.filter((x) => x !== line); if (!wsLines.length) wsLines.push({ id: ++wsLineSeq, refId: "", qty: 1, unitPrice: "" }); renderWholesaleLines(); };
+      } else if (el.dataset.f === "refId") {
+        el.onchange = () => {
+          line.refId = el.value;
+          const p = products.find((x) => x.id === el.value);
+          line.unitPrice = p && p.wholesalePrice !== "" && p.wholesalePrice != null ? p.wholesalePrice : (p?.price ?? "");
+          renderWholesaleLines();
+        };
+      } else {
+        el.oninput = () => { line[el.dataset.f] = el.value; $("#wsTotal").textContent = formatPrice(wholesaleTotal()); };
+      }
+    });
+  });
+  $("#wsTotal").textContent = formatPrice(wholesaleTotal());
+}
+
+async function onWholesaleSubmit(ev) {
+  ev.preventDefault();
+  const lines = wsLines.filter((l) => l.refId).map((l) => ({
+    refId: l.refId,
+    name: products.find((p) => p.id === l.refId)?.name || "",
+    qty: Number(l.qty),
+    unitPrice: Number(l.unitPrice),
+  }));
+  if (lines.length === 0) { toast("Agrega al menos un producto.", "error"); return; }
+  const btn = $("#wsSubmit");
+  btn.disabled = true;
+  try {
+    const sale = await sellWholesale(lines, {
+      customer: $("#wsCustomer").value,
+      location: $("#wsLocation").value,
+      paymentMethod: $("#wsMethod").value,
+      notes: $("#wsNotes").value,
+    }, { uid: myProfile.uid, name: myProfile.displayName || myProfile.email });
+    closeWholesaleModal();
+    toast(`Venta a barbería registrada: ${formatPrice(sale.total)}.`, "success");
+    loadInventorySales();
+  } catch (err) {
+    toast(err.message || "No se pudo registrar la venta.", "error");
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function onMigrateInventory() {
@@ -1924,7 +2072,7 @@ async function loadReport() {
   const { startIso, endIso } = shopDayRange($("#repFrom").value, $("#repTo").value);
   const msg = (text) => {
     $("#repRows").innerHTML = `<tr><td colspan="9" class="empty">${text}</td></tr>`;
-    $("#repDayRows").innerHTML = `<tr><td colspan="4" class="empty">${text}</td></tr>`;
+    $("#repDayRows").innerHTML = `<tr><td colspan="5" class="empty">${text}</td></tr>`;
   };
   msg("Cargando…");
   try {
@@ -1950,22 +2098,25 @@ function renderReport() {
   const tile = (label, value) => `<div class="pos-report-tile"><div class="pos-report-tile-label">${label}</div><div class="pos-report-tile-value">${value}</div></div>`;
   if (admin) {
     $("#repTotals").innerHTML =
-      tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) + tile("Ticket promedio", formatPrice(t.ticket)) +
-      tile("Servicios", formatPrice(t.serviceAmount)) + tile("Productos", formatPrice(t.productAmount)) +
-      tile("Comisiones", formatPrice(t.commission)) + tile("Neto barbería", formatPrice(t.net)) + tile("Canceladas", t.voided);
+      tile("Total vendido", formatPrice(t.total)) + tile("Cobros", t.sales) + tile("Ticket promedio", formatPrice(t.ticket)) +
+      tile("Cortes", t.cutUnits) + tile("Servicios adicionales", `${t.extraUnits} (${t.extraShare}%)`) +
+      tile("Cobros con servicio", t.serviceSales) + tile("Ventas solo de producto", t.productOnlySales) +
+      tile("Servicios", formatPrice(t.serviceAmount)) + tile("Productos", `${t.productUnits} · ${formatPrice(t.productAmount)}`) +
+      tile("Comisiones", formatPrice(t.commission)) + tile("Neto barbería", formatPrice(t.net)) + tile("Canceladas", t.voided) +
+      tile("Ventas a barberías", `${rep.wholesale.units} pza · ${formatPrice(rep.wholesale.total)}`);
   } else {
     const workedDays = rep.days.length;
     $("#repTotals").innerHTML =
-      tile("Tu comisión", formatPrice(t.commission)) + tile("Total vendido", formatPrice(t.total)) + tile("Ventas", t.sales) +
+      tile("Tu comisión", formatPrice(t.commission)) + tile("Total vendido", formatPrice(t.total)) + tile("Cobros", t.sales) +
       tile("Ticket promedio", formatPrice(t.ticket)) + tile("Cortes", t.cutUnits) + tile("Servicios adicionales", `${t.extraUnits} (${t.extraShare}%)`) +
       tile("Productos", `${t.productUnits} · ${formatPrice(t.productAmount)}`) +
       tile("Comisión por día", formatPrice(workedDays ? Math.round(t.commission / workedDays * 100) / 100 : 0)) + tile("Canceladas", t.voided);
     $("#repDayRows").innerHTML = rep.days.length === 0
-      ? `<tr><td colspan="4" class="empty">Sin ventas en este rango.</td></tr>`
+      ? `<tr><td colspan="5" class="empty">Sin ventas en este rango.</td></tr>`
       : rep.days.slice().reverse().map((d) => {
           const [y, m, dd] = d.ymd.split("-").map(Number);
           const label = new Date(Date.UTC(y, m - 1, dd, 12)).toLocaleDateString("es-MX", { timeZone: "UTC", weekday: "short", day: "2-digit", month: "short" });
-          return `<tr><td>${escape(label)}</td><td class="num">${d.sales}</td><td class="num"><b>${formatPrice(d.total)}</b></td><td class="num">${formatPrice(d.commission)}</td></tr>`;
+          return `<tr><td>${escape(label)}</td><td class="num">${d.sales}</td><td class="num">${d.cutUnits}</td><td class="num"><b>${formatPrice(d.total)}</b></td><td class="num">${formatPrice(d.commission)}</td></tr>`;
         }).join("");
     return;
   }
@@ -1995,7 +2146,7 @@ async function onExportReport() {
     const uid = $("#repBarber").value;
     const barber = allUsers.find((u) => u.uid === uid);
     const n = await exportSalesReportXlsx({
-      rows: reportScopedRows(), users: allUsers, commission: commissionSettings, tz: SHOP_TZ,
+      rows: reportScopedRows(), products, users: allUsers, commission: commissionSettings, tz: SHOP_TZ,
       from: $("#repFrom").value, to: $("#repTo").value,
       barberLabel: barber ? (barber.displayName || barber.email) : "Todos",
     });
@@ -2042,7 +2193,10 @@ function renderCorte() {
     ? lastCorteRows.filter((r) => r.cashierUid === corteCashierFilter)
     : lastCorteRows;
 
-  const valid = rows.filter((r) => !r.voided);
+  // Sales to other barbershops never go through the register: they are shown
+  // in their own block and kept out of cash, commission and cut counts.
+  const valid = rows.filter((r) => !r.voided && !isWholesale(r));
+  const wholesale = summarizeWholesale(rows);
   let efectivo = 0, tarjeta = 0, transferencia = 0;
   valid.forEach((r) => {
     paymentLines(r).forEach((p) => {
@@ -2054,6 +2208,7 @@ function renderCorte() {
   });
 
   let commissionTotal = 0, serviceBase = 0, productUnits = 0, productBase = 0;
+  let cutUnits = 0, extraUnits = 0, serviceTickets = 0, productOnlyTickets = 0;
   const byCashier = new Map();
   const cashByUid = new Map(), commByUid = new Map();
   valid.forEach((r) => {
@@ -2064,11 +2219,16 @@ function renderCorte() {
       if (p.method !== "tarjeta" && p.method !== "transferencia") cashByUid.set(r.cashierUid, (cashByUid.get(r.cashierUid) || 0) + (Number(p.amount) || 0));
     });
     byCashier.set(r.cashierName || "—", (byCashier.get(r.cashierName || "—") || 0) + c);
+    if ((r.items || []).some((i) => i.kind !== "product")) serviceTickets++; else productOnlyTickets++;
     (r.items || []).forEach((i) => {
       if (i.kind === "product") {
         productUnits += Number(i.qty) || 0;
         productBase += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
-      } else serviceBase += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
+      } else {
+        serviceBase += (Number(i.unitPrice) || 0) * (Number(i.qty) || 0);
+        // Each haircut counts once per unit (two cuts on one ticket = 2); corte y barba is still one cut.
+        if (isCutService(i.name)) cutUnits += Number(i.qty) || 0; else extraUnits += Number(i.qty) || 0;
+      }
     });
   });
   const r2 = (n) => Math.round(n * 100) / 100;
@@ -2095,7 +2255,7 @@ function renderCorte() {
   const serviceCommission = r2(serviceBase * servicePercent / 100);
   const productCommission = r2(productUnits * productAmount);
   const summaryEl = $("#corteCommissionSummary");
-  summaryEl.hidden = valid.length === 0;
+  summaryEl.hidden = valid.length === 0 && wholesale.sales === 0;
   summaryEl.innerHTML = `
     <div class="pos-commission-title">Resumen de comisión</div>
     <div class="pos-commission-line"><span>Servicios: ${formatPrice(r2(serviceBase))} × ${servicePercent}%</span><strong>${formatPrice(r2(serviceBase * servicePercent / 100))}</strong></div>
@@ -2117,6 +2277,15 @@ function renderCorte() {
     <div class="pos-commission-title" style="margin-top:6px;">Ventas por tipo</div>
     <div class="pos-commission-line"><span>Servicios</span><strong>${formatPrice(r2(serviceBase))}</strong></div>
     <div class="pos-commission-line"><span>Productos (${productUnits} ${productUnits === 1 ? "pieza" : "piezas"})</span><strong>${formatPrice(r2(productBase))}</strong></div>
+    <div class="pos-commission-title" style="margin-top:6px;">Cortes y servicios realizados</div>
+    <div class="pos-commission-line"><span>Cortes (cada corte cuenta, aunque se cobren juntos)</span><strong>${cutUnits}</strong></div>
+    <div class="pos-commission-line"><span>Servicios adicionales (barba, ceja, etc.)</span><strong>${extraUnits}</strong></div>
+    <div class="pos-commission-line"><span>Cobros con servicio</span><strong>${serviceTickets}</strong></div>
+    <div class="pos-commission-line"><span>Cobros solo de producto</span><strong>${productOnlyTickets}</strong></div>
+    ${admin && wholesale.sales > 0 ? `
+    <div class="pos-commission-title" style="margin-top:6px;">Ventas a barberías (aparte, no entran en caja)</div>
+    ${wholesale.customers.map((c) => `<div class="pos-commission-line"><span>${escape(c.name)}: ${c.units} pza</span><strong>${formatPrice(c.total)}</strong></div>`).join("")}
+    <div class="pos-commission-line pos-commission-total"><span>Total a barberías (${wholesale.units} pza)</span><strong>${formatPrice(wholesale.total)}</strong></div>` : ""}
     ${admin ? `
     <div class="pos-commission-title" style="margin-top:6px;">Para la barbería (después de comisión)</div>
     <div class="pos-commission-line"><span>Servicios</span><strong>${formatPrice(r2(serviceBase - serviceCommission))}</strong></div>
@@ -2136,7 +2305,10 @@ function renderCorte() {
     <div class="pos-report-tile"><div class="pos-report-tile-label">${admin && corteCashierFilter === "all" ? "Comisiones (todos)" : "Comisión"}</div><div class="pos-report-tile-value">${formatPrice(commissionTotal)}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Productos</div><div class="pos-report-tile-value">${formatPrice(r2(productBase))}</div></div>
     <div class="pos-report-tile"><div class="pos-report-tile-label">Piezas vendidas</div><div class="pos-report-tile-value">${productUnits}</div></div>
-    <div class="pos-report-tile"><div class="pos-report-tile-label">Ventas</div><div class="pos-report-tile-value">${valid.length}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Cortes</div><div class="pos-report-tile-value">${cutUnits}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Cobros con servicio</div><div class="pos-report-tile-value">${serviceTickets}</div></div>
+    <div class="pos-report-tile"><div class="pos-report-tile-label">Ventas solo de producto</div><div class="pos-report-tile-value">${productOnlyTickets}</div></div>
+    ${admin ? `<div class="pos-report-tile"><div class="pos-report-tile-label">Ventas a barberías</div><div class="pos-report-tile-value">${formatPrice(wholesale.total)}</div></div>` : ""}
   `;
 
   const list = $("#corteList");
@@ -2147,7 +2319,7 @@ function renderCorte() {
   list.innerHTML = rows.map((r) => `
     <div class="tx-row ${admin ? "has-cashier" : ""} ${r.voided ? "is-voided" : ""}">
       <span class="tx-row-time">${new Date(r.createdAt).toLocaleString("es-MX", { timeZone: SHOP_TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-      <span class="tx-row-items">${escape((r.items || []).map((i) => `${i.qty}× ${i.name}`).join(", "))}${r.voided ? " (cancelada)" : ""}<br><small style="opacity:.65">${escape(paymentLines(r).map((p) => `${methodLabel(p.method)} ${formatPrice(p.amount)}${p.note ? ` (${p.note})` : ""}`).join(" + "))}</small></span>
+      <span class="tx-row-items">${isWholesale(r) ? `<b>Barbería: ${escape(r.customer || "—")}</b> · ` : ""}${escape((r.items || []).map((i) => `${i.qty}× ${i.name}`).join(", "))}${r.voided ? " (cancelada)" : ""}<br><small style="opacity:.65">${escape(paymentLines(r).map((p) => `${methodLabel(p.method)} ${formatPrice(p.amount)}${p.note ? ` (${p.note})` : ""}`).join(" + "))}</small></span>
       ${admin ? `<span class="tx-row-cashier">${escape(r.cashierName || "—")}</span>` : ""}
       <span class="tx-row-method" title="${escapeAttr(paymentLines(r).map((p) => `${methodLabel(p.method)}: ${formatPrice(p.amount)}`).join(" · "))}">${paymentBadge(r)}</span>
       <span class="tx-row-total">${formatPrice(r.total)}</span>
