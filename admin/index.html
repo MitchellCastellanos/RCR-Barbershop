@@ -802,6 +802,24 @@
     </div>
   </div>
 
+  <!-- Corregir forma de pago -->
+  <div class="modal" id="payFixModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Corregir forma de pago</h3>
+        <button class="icon-btn" id="payFixClose" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+      </div>
+      <p class="field-hint" id="payFixInfo" style="margin-bottom:10px;"></p>
+      <ul class="pos-payment-lines" id="payFixLines"></ul>
+      <button type="button" class="btn btn-ghost btn-sm" id="payFixAdd"><i class="fas fa-plus"></i> Agregar otro pago</button>
+      <div class="pos-payment-remaining" id="payFixRemaining"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="payFixCancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="payFixSave"><i class="fas fa-check"></i> Guardar corrección</button>
+      </div>
+    </div>
+  </div>
+
   <!-- QR label modal -->
   <div class="modal" id="qrModal" hidden>
     <div class="modal-card">
@@ -905,7 +923,7 @@
         <button class="icon-btn" id="adminAuthModalClose" aria-label="Cerrar"><i class="fas fa-times"></i></button>
       </div>
       <p class="field-hint" style="margin-bottom:12px;">
-        Cancelar una venta requiere el correo y contraseña de un administrador.
+        <span id="adminAuthText">Cancelar una venta requiere el correo y contraseña de un administrador.</span>
         Tu sesión como cajero no se cierra.
       </p>
       <form id="adminAuthForm" class="form-grid">
@@ -920,7 +938,7 @@
         <p class="login-error" id="adminAuthError" hidden></p>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" id="adminAuthCancelBtn">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="adminAuthSubmitBtn"><i class="fas fa-check"></i> Autorizar y cancelar</button>
+          <button type="submit" class="btn btn-primary" id="adminAuthSubmitBtn"><i class="fas fa-check"></i> <span id="adminAuthSubmitText">Autorizar y cancelar</span></button>
         </div>
       </form>
     </div>

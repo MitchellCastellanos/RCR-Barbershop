@@ -100,7 +100,7 @@ service cloud.firestore {
     // Cash-register sales. A cashier can only create a sale under their
     // own uid, and can only read their own sales. Admin reads/lists all
     // of them (that's the "corte de caja total"). Voiding a sale is
-    // admin-only and may only touch the void fields — never the items,
+    // admin-only and may only touch the void fields (or correct the payment breakdown) — never the items,
     // total, or cashier of the original sale.
     match /transactions/{transactionId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.cashierUid == request.auth.uid);
@@ -109,7 +109,11 @@ service cloud.firestore {
         && request.resource.data.voided == false
         // Wholesale sales to other barbershops are admin-only.
         && (request.resource.data.get('channel', 'tienda') != 'mayoreo' || isAdmin());
-      allow update: if isAdmin() && diffKeys().hasOnly(['voided', 'voidedAt', 'voidedBy']);
+      allow update: if isAdmin() && (
+        diffKeys().hasOnly(['voided', 'voidedAt', 'voidedBy'])
+        // Fixing the payment method of a sale (items and total stay untouched).
+        || diffKeys().hasOnly(['payments', 'paymentMethod', 'previousPayments', 'editedAt', 'editedBy'])
+      );
       allow delete: if false;
     }
 

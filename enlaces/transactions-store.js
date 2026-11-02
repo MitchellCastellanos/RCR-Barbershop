@@ -322,6 +322,43 @@ export async function voidTransaction(transactionId, fsCtx = null, voidedByUid =
 }
 
 /**
+ * Fixes how a sale was paid (e.g. rung up as cash but it was card) without
+ * cancelling it, so stock, totals and commission stay as they were and only
+ * the payment breakdown changes. Admin-only per firestore.rules — pass the
+ * admin-authorized `fsCtx` when a cashier is signed in. The previous
+ * breakdown is kept in `previousPayments` for audit.
+ */
+export async function updateTransactionPayments(transactionId, payments, fsCtx = null, editedByUid = null) {
+  if (!FIREBASE_ENABLED) throw new Error("Firebase no está habilitado.");
+  const { db, doc, runTransaction } = fsCtx || (await getFirestore());
+  const txRef = doc(db, "transactions", transactionId);
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(txRef);
+    if (!snap.exists()) throw new Error("La venta ya no existe.");
+    const sale = snap.data();
+    if (sale.voided) throw new Error("Esta venta está cancelada.");
+    const clean = (payments || []).map((p) => ({
+      method: PAYMENT_METHODS.includes(p.method) ? p.method : "efectivo",
+      amount: round2(p.amount),
+      note: (p.note || "").trim(),
+    }));
+    if (clean.length === 0 || clean.some((p) => p.amount <= 0)) throw new Error("Cada pago debe ser mayor a cero.");
+    const sum = round2(clean.reduce((s, p) => s + p.amount, 0));
+    if (Math.abs(sum - round2(sale.total)) > 0.01) {
+      throw new Error(`Los pagos (${sum}) no coinciden con el total de la venta (${round2(sale.total)}).`);
+    }
+    const methods = new Set(clean.map((p) => p.method));
+    tx.update(txRef, {
+      payments: clean,
+      paymentMethod: methods.size > 1 ? "mixto" : clean[0].method,
+      previousPayments: paymentLines(sale),
+      editedAt: nowIso(),
+      editedBy: editedByUid,
+    });
+  });
+}
+
+/**
  * One-shot fetch of transactions between two ISO timestamps (inclusive),
  * most recent first.
  *

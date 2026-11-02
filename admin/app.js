@@ -19,7 +19,7 @@ import {
 import { exportInventoryXlsx } from "../enlaces/xlsx-export.js";
 import { computeReport, computeProductSales, summarizeWholesale, exportSalesReportXlsx, isCutService } from "../enlaces/reports-export.js";
 import { buildProductUrl, renderQrToCanvas } from "../enlaces/qr.js";
-import { sellCart, sellWholesale, isWholesale, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
+import { sellCart, sellWholesale, updateTransactionPayments, isWholesale, voidTransaction, fetchTransactionsRange, paymentLines, PAYMENT_METHODS, DEFAULT_COMMISSION, fetchCommissionSettings, saveCommissionSettings, saleCommission } from "../enlaces/transactions-store.js";
 import { scanCodeFromCamera, extractProductId } from "../enlaces/scan.js";
 import {
   resolveMyProfile, subscribeUsers, createCashier, setUserActive,
@@ -277,6 +277,11 @@ async function startApp() {
     if (e.target.id === "cashierModal") closeCashierModal();
   });
 
+  $("#payFixClose").onclick = closePayFixModal;
+  $("#payFixCancel").onclick = closePayFixModal;
+  $("#payFixSave").onclick = onPayFixSave;
+  $("#payFixAdd").onclick = () => { payFixLines.push({ id: ++payFixSeq, method: "efectivo", amount: Math.max(0, payFixRemaining()), note: "" }); renderPayFix(); };
+  $("#payFixModal").addEventListener("click", (e) => { if (e.target.id === "payFixModal") closePayFixModal(); });
   $("#adminAuthModalClose").onclick = closeAdminAuthModal;
   $("#adminAuthCancelBtn").onclick = closeAdminAuthModal;
   $("#adminAuthForm").addEventListener("submit", onAdminAuthSubmit);
@@ -461,10 +466,15 @@ async function onResetPassword(u) {
 }
 
 // ---------- Admin-authorized void (used when a cashier cancels a sale) ----------
-let pendingVoidTxId = null;
+let pendingAdminAction = null; // { type: "void" | "payments", txId, payments? }
 
-function openAdminAuthModal(txId) {
-  pendingVoidTxId = txId;
+function openAdminAuthModal(action) {
+  pendingAdminAction = action;
+  const fix = action.type === "payments";
+  $("#adminAuthText").textContent = fix
+    ? "Corregir la forma de pago requiere el correo y contraseña de un administrador."
+    : "Cancelar una venta requiere el correo y contraseña de un administrador.";
+  $("#adminAuthSubmitText").textContent = fix ? "Autorizar y guardar" : "Autorizar y cancelar";
   $("#adminAuthForm").reset();
   $("#adminAuthError").hidden = true;
   $("#adminAuthModal").hidden = false;
@@ -473,13 +483,14 @@ function openAdminAuthModal(txId) {
 
 function closeAdminAuthModal() {
   $("#adminAuthModal").hidden = true;
-  pendingVoidTxId = null;
+  pendingAdminAction = null;
 }
 
 async function onAdminAuthSubmit(ev) {
   ev.preventDefault();
-  const txId = pendingVoidTxId;
-  if (!txId) return;
+  const action = pendingAdminAction;
+  if (!action) return;
+  const fix = action.type === "payments";
   const email = $("#adminAuthEmail").value.trim();
   const password = $("#adminAuthPassword").value;
 
@@ -488,17 +499,18 @@ async function onAdminAuthSubmit(ev) {
   btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Verificando…`;
   try {
     await withAdminAuthorization(email, password, (fsCtx, adminUser) =>
-      voidTransaction(txId, fsCtx, adminUser.uid)
+      fix ? updateTransactionPayments(action.txId, action.payments, fsCtx, adminUser.uid) : voidTransaction(action.txId, fsCtx, adminUser.uid)
     );
-    toast("Venta cancelada.", "success");
+    toast(fix ? "Forma de pago corregida." : "Venta cancelada.", "success");
     closeAdminAuthModal();
     loadCorte();
+    if (repRows.length) loadReport();
   } catch (err) {
-    $("#adminAuthError").textContent = err.message || "No se pudo autorizar la cancelación.";
+    $("#adminAuthError").textContent = err.message || "No se pudo autorizar.";
     $("#adminAuthError").hidden = false;
   } finally {
     btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-check"></i> Autorizar y cancelar`;
+    btn.innerHTML = `<i class="fas fa-check"></i> <span id="adminAuthSubmitText">${fix ? "Autorizar y guardar" : "Autorizar y cancelar"}</span>`;
   }
 }
 
@@ -2324,6 +2336,7 @@ function renderCorte() {
       <span class="tx-row-method" title="${escapeAttr(paymentLines(r).map((p) => `${methodLabel(p.method)}: ${formatPrice(p.amount)}`).join(" · "))}">${paymentBadge(r)}</span>
       <span class="tx-row-total">${formatPrice(r.total)}</span>
       <button type="button" class="icon-btn" data-action="print" data-tx-id="${r.id}" title="Imprimir recibo"><i class="fas fa-print"></i></button>
+      ${r.voided ? "" : `<button type="button" class="icon-btn" data-action="fixpay" data-tx-id="${r.id}" title="Corregir forma de pago"><i class="fas fa-pen"></i></button>`}
       ${r.voided ? "" : `<button type="button" class="icon-btn icon-btn-danger" data-action="void" data-tx-id="${r.id}" title="Cancelar venta"><i class="fas fa-ban"></i></button>`}
     </div>
   `).join("");
@@ -2333,9 +2346,82 @@ function renderCorte() {
       if (tx) printReceipt(tx);
     };
   });
+  list.querySelectorAll('[data-action="fixpay"]').forEach((btn) => {
+    btn.onclick = () => openPayFixModal(rows.find((r) => r.id === btn.dataset.txId));
+  });
   list.querySelectorAll('[data-action="void"]').forEach((btn) => {
     btn.onclick = () => onVoidTransaction(btn.dataset.txId);
   });
+}
+
+// ---------- Corregir forma de pago (sin cancelar la venta) ----------
+let payFixTx = null;
+let payFixLines = []; // [{ id, method, amount, note }]
+let payFixSeq = 0;
+
+function openPayFixModal(tx) {
+  if (!tx) return;
+  payFixTx = tx;
+  payFixLines = paymentLines(tx).map((p) => ({ id: ++payFixSeq, method: p.method, amount: p.amount, note: p.note || "" }));
+  $("#payFixInfo").textContent = `Venta de ${formatPrice(tx.total)}. Cambia el método (o reparte el pago); el total no cambia ni se mueve el inventario.`;
+  renderPayFix();
+  $("#payFixModal").hidden = false;
+}
+
+function closePayFixModal() {
+  $("#payFixModal").hidden = true;
+  payFixTx = null;
+}
+
+function payFixRemaining() {
+  return round2(Number(payFixTx.total) - payFixLines.reduce((s, p) => s + (Number(p.amount) || 0), 0));
+}
+
+function updatePayFixRemaining() {
+  const rem = payFixRemaining();
+  const el = $("#payFixRemaining");
+  el.textContent = Math.abs(rem) < 0.01 ? "Cuadra con el total ✓" : `Falta/sobra: ${formatPrice(rem)}`;
+  el.classList.toggle("is-ok", Math.abs(rem) < 0.01);
+}
+
+function renderPayFix() {
+  const el = $("#payFixLines");
+  el.innerHTML = payFixLines.map((p) => `
+    <li class="pos-payment-line" data-id="${p.id}">
+      <select data-f="method">${PAYMENT_METHODS.map((m) => `<option value="${m}" ${p.method === m ? "selected" : ""}>${methodLabel(m)}</option>`).join("")}</select>
+      <input type="number" min="0" step="0.01" data-f="amount" value="${p.amount}" />
+      <input type="text" data-f="note" placeholder="Ref. (opcional)" maxlength="20" value="${escapeAttr(p.note)}" />
+      <button type="button" class="icon-btn icon-btn-danger" data-f="del" title="Quitar"><i class="fas fa-times"></i></button>
+    </li>`).join("");
+  $$("#payFixLines li").forEach((li) => {
+    const line = payFixLines.find((x) => x.id === Number(li.dataset.id));
+    $('[data-f="method"]', li).onchange = (e) => { line.method = e.target.value; };
+    $('[data-f="amount"]', li).oninput = (e) => { line.amount = e.target.value === "" ? 0 : Number(e.target.value); updatePayFixRemaining(); };
+    $('[data-f="note"]', li).oninput = (e) => { line.note = e.target.value; };
+    $('[data-f="del"]', li).onclick = () => { payFixLines = payFixLines.filter((x) => x !== line); renderPayFix(); };
+  });
+  updatePayFixRemaining();
+}
+
+async function onPayFixSave() {
+  if (!payFixTx) return;
+  if (payFixLines.length === 0 || payFixLines.some((p) => !(Number(p.amount) > 0))) { toast("Cada pago debe ser mayor a cero.", "error"); return; }
+  if (Math.abs(payFixRemaining()) >= 0.01) { toast("Los pagos no cuadran con el total.", "error"); return; }
+  const payments = payFixLines.map((p) => ({ method: p.method, amount: Number(p.amount), note: p.note }));
+  const txId = payFixTx.id;
+  if (!isAdminRole()) {
+    closePayFixModal();
+    openAdminAuthModal({ type: "payments", txId, payments });
+    return;
+  }
+  try {
+    await updateTransactionPayments(txId, payments, null, myProfile.uid);
+    closePayFixModal();
+    toast("Forma de pago corregida.", "success");
+    loadCorte();
+  } catch (err) {
+    toast(err.message || "No se pudo corregir.", "error");
+  }
 }
 
 async function onVoidTransaction(id) {
@@ -2343,7 +2429,7 @@ async function onVoidTransaction(id) {
 
   if (!isAdminRole()) {
     // Cashiers can't void on their own — an admin has to authorize it live.
-    openAdminAuthModal(id);
+    openAdminAuthModal({ type: "void", txId: id });
     return;
   }
   try {
